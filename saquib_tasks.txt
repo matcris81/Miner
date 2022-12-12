@@ -1,0 +1,26 @@
+Yo so I'll be flying tonight and won't be able to help you guys out 
+starting next task. But should be pretty easy to start off with.
+
+First thing is to get your miner to start saving results to the 
+filesystem. Create a directory called data and just save the output of 
+your miner there. Filename is the resulting hash and contents of the file 
+are the raw prefix+hashes+nonce saved as bytes.
+
+Next Create an index directory which will keep your spv lists. So when you 
+give your miner some data to mine onto a keyword, once it's mined the 
+result, it will save the hash to the end of the spv list for that keyword.
+
+Would be good to also prompt user for data input and then save that in the 
+data directory as well (e.g. file named 
+6eb228fb5b59ab49a45a48bdd9e5f0ed65b43afb52ec72cc825a567986630827 would 
+just contain the word "beans")
+
+So once you have those 3 things you should be able to mine index data and 
+save it properly. Now you can create an archiver. So you'll take your own 
+index data and create tar files similar to what I gave you guys last week. 
+Don't copy my 21e8-engine code it's hard to follow and not efficient.
+
+Archiver is pretty simple. Given a keyword, get all of the related index 
+data, hash the spvlist for the keyword and mine that with a prefix length 
+higher than the difficulty of all the index data included. Also add any 
+data files related to the hashes to the tar.
