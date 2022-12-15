@@ -1,12 +1,12 @@
 CC = g++
-CFLAGS = -g -Wall -std=c++17 -O3 -lz -lbz2 -larchive
+CFLAGS = -g -Wall -std=c++17 -O3 -lz -lbz2 -larchive -I. -O2 -pthread
 
-TARGET = main
+TARGET = miner
 
 all: $(TARGET)
 
 $(TARGET): $(TARGET).cpp
-		$(CC) $(CFLAGS) $(TARGET).cpp -I. -O2 -pthread -o $(TARGET)
+		$(CC) $(CFLAGS) $(TARGET).cpp -o $(TARGET)
 
 run: $(TARGET)
 	./$(TARGET)

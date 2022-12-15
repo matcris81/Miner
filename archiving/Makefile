@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -g -Wall -std=c++17 -lz -lbz2 -larchive
 
-TARGET = main
+TARGET = archiver
 
 all: $(TARGET)
 
