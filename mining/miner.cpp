@@ -162,7 +162,7 @@ std::vector<std::string> miner(std::string target, std::string hash)
 
         unsigned char *noncePtr = message + rawconst.size() - 8;
         uint64_t *n = (long long unsigned int *) noncePtr;
-        (*n) = index * (ULLONG_MAX / 99.3) + start_nonce;
+        (*n) = index * (ULLONG_MAX / 100) + start_nonce;
         while (true) {
                 (*n)++;
                 sha256(message, len, digest);
@@ -219,6 +219,7 @@ int main()
         data_hash = generateHash(data);
 
         std::string hash = key_word + user_hash + data_hash;
+        std::cout << target << std::endl;
 
         std::vector<std::string> digestString = miner(target, hash);
 
@@ -249,8 +250,9 @@ int main()
     writeToFile(digestMsg[0], hexToBytes(spvlistHash), key_word);
 
     std::vector<std::string> datas;
-    for (const auto & entry : std::filesystem::directory_iterator(key_word))
+    for (const auto & entry : std::filesystem::directory_iterator(key_word)){
         datas.push_back(entry.path());
+    }
 
     std::string keyWordConst = key_word + ".tar";
     write_archive(keyWordConst.c_str() , datas);

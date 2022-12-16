@@ -3,7 +3,6 @@
 #include "../libarchive-master/libarchive/archive_entry.h"
 #include <regex>
 #include <sstream>
-#include <filesystem>
 #include <cstddef>
 #include <fstream>
 #include <map>
@@ -176,9 +175,8 @@ int main(int argc, char *argv[])
     std::string file_path = "6f4b6612125fb3a0daecd2799dfd6c9c299424fd920f9b308110a2c1fbd8f443";
 
     extract("6f4b6612125fb3a0daecd2799dfd6c9c299424fd920f9b308110a2c1fbd8f443.tar");
-    int prefix;
-    std::string greatest_file_path =file_path + "/" + returnGreatestFileName(file_path, prefix);
-
+    int prefix = 0;
+    std::string greatest_file_path = file_path + "/" + returnGreatestFileName(file_path, prefix);
     // std::string file = getFileInfo(file_path, prefix, 0);
     // std::string newFilePath = file_path.substr(0, file_path.find_last_of('/')) + "/" + file;
     std::string newFileContents = getFileInfo(greatest_file_path, prefix, 1);
@@ -198,8 +196,6 @@ int main(int argc, char *argv[])
         std::string finalDestination = destination + "/" + file_path + "/" + spvfile;
         std::string xd = getFileInfo(finalDestination, prefix, 1); 
         int prefixLength = prefixLengthIdentifier(spvfile, xd);
-        
-
         if (prefixLength % 2 == 1 && !xd.empty())
         {
             xd = xd.substr((xd.length() - 81), 64);
@@ -209,14 +205,14 @@ int main(int argc, char *argv[])
             xd = xd.substr((xd.length() - 80), 64);
         }
         hashesOrdered.insert({pow(16, prefixLength), xd});
-    }
 
+    }
     std::map<int, std::string>::iterator it;
     for (it = hashesOrdered.begin(); it != hashesOrdered.end(); it++) {
         std::string finalFilePath = destination + "/" + file_path;
         finalFilePath = finalFilePath + "/" + (*it).second;
         std::string finalOutput = getFileInfo(finalFilePath, 0, 2);
-        std::cout << "Final Output: " << finalOutput << " -> "<<it->first << std::endl;
+        std::cout << finalOutput << " -> "<<it->first << std::endl;
     }
 
     std::filesystem::remove_all("6f4b6612125fb3a0daecd2799dfd6c9c299424fd920f9b308110a2c1fbd8f443");
