@@ -206,7 +206,7 @@ int main()
 
     while (true)
     {
-        std::cout << "Provide a prefix: (enter to exit)" << std::endl;
+        std::cout << "Provide a prefix: (enter to exit or provide a filename with .extension at the end)" << std::endl;
         std::getline(std::cin, target);
         if(target == "")
             break;
@@ -216,11 +216,15 @@ int main()
         if (data == "")
             break;
 
+            size_t found = target.find(".");
+        // substring the extension
+        if (target.find(".") != std::string::npos) {
+            target = target.substr(found, target.length() - target.find("."));
+            target = generateHash(target).substr(0,4);
+        }
+
         data_hash = generateHash(data);
-
         std::string hash = key_word + user_hash + data_hash;
-        std::cout << target << std::endl;
-
         std::vector<std::string> digestString = miner(target, hash);
 
         longkeyWordspvlist += digestString[0];
@@ -228,10 +232,9 @@ int main()
         writeTextToFile(data_hash, data, key_word);
 
         weight += pow(16, target.length());
-
     }
 
-    int new_pref_len;
+    int new_pref_len = 0;
 
     // Determine how long the longest prefix must be
     if (fmod(log2(weight) / log2(16), 1.0) == 0.0){
