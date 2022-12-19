@@ -8,6 +8,7 @@
 #include <map>
 #include <cmath>
 #include <fcntl.h>
+#include "../functions.h"
 
 namespace fs = std::filesystem;
 
@@ -94,19 +95,24 @@ static void extract(const char *filename)
   archive_write_free(ext);
 }
 
-std::string returnGreatestFileName(std::string file_path, int &prefix)
+std::string returnGreatestFileName(std::string file_path, std::string prefixString, int &prefix)
 {
     std::string greatestFileName;
     for (const auto &dirEntry : std::filesystem::directory_iterator(file_path))
     {
         const std::string &s = dirEntry.path();
-        std::string file_name = s.substr(s.find_last_of('/') + 1, s.length());
-        if (file_name.substr(0, 4) == "21e8")
+        char* compareToThis = "21e8000000000000";
+        size_t findLast = s.find_last_of('/') + 1;
+        size_t sLength = s.length();
+        size_t prefixStringLength = prefixString.length();
+        std::string file_name = s.substr(findLast, sLength);
+        size_t fileNameLength = file_name.length();
+        if (file_name.substr(0, prefixStringLength) == prefixString)
         {
-            std::string tmp = file_name.substr(4, file_name.length());
+            std::string tmp = file_name.substr(prefixStringLength, fileNameLength);
             const char *charFile = tmp.c_str();
             int i = 0;
-            while (charFile[i] == '0')
+            while (charFile[i] == compareToThis[i])
             {
                 i++;
             }
@@ -119,15 +125,6 @@ std::string returnGreatestFileName(std::string file_path, int &prefix)
     }
 
     return greatestFileName;
-}
-
-std::string bytesToHex(std::vector<uint8_t> bytes)
-{
-    std::stringstream ss;
-    ss << std::hex;
-    for (int i(0); i < bytes.size(); ++i)
-        ss << std::setw(2) << std::setfill('0') << (int)bytes[i];
-    return ss.str();
 }
 
 std::string getFileInfo(std::string filePath, int prefixLen, int x)
@@ -167,46 +164,43 @@ int prefixLengthIdentifier(std::string fileName, std::string insideFile) {
     return prefixLength;
 }
 
-int main(int argc, char *argv[])
+void archiver(std::string file_path, std::string prefixString)
 {
     char tmp[256];
     getcwd(tmp, 256);
     std::string destination = convertToString(tmp);
-    std::string file_path = "6f4b6612125fb3a0daecd2799dfd6c9c299424fd920f9b308110a2c1fbd8f443";
-
-    extract("6f4b6612125fb3a0daecd2799dfd6c9c299424fd920f9b308110a2c1fbd8f443.tar");
+    std::string file_path_string = file_path + ".tar";
+    const char* extracter = file_path_string.c_str();
+    extract(extracter);
     int prefix = 0;
-    std::string greatest_file_path = file_path + "/" + returnGreatestFileName(file_path, prefix);
-    // std::string file = getFileInfo(file_path, prefix, 0);
-    // std::string newFilePath = file_path.substr(0, file_path.find_last_of('/')) + "/" + file;
+    std::string greatest_file_path = file_path + "/" + returnGreatestFileName(file_path, prefixString, prefix);
     std::string newFileContents = getFileInfo(greatest_file_path, prefix, 1);
     std::vector<std::string> archiveFiles;
-
     std::string x  = getFileInfo(file_path + "/" + newFileContents, prefix, 1);
-    for (int i = 0; i < x.length() - 2; i += 64) {
+    for (size_t i = 0; i < x.length() - 2; i += 64) {
         archiveFiles.push_back(x.substr(i, 64));
     }
 
     sort(archiveFiles.begin(), archiveFiles.end());
     archiveFiles.erase(unique(archiveFiles.begin(), archiveFiles.end()), archiveFiles.end());
-
     std::multimap<int, std::string, std::greater<int>> hashesOrdered;
     for (std::string spvfile : archiveFiles)
     {
         std::string finalDestination = destination + "/" + file_path + "/" + spvfile;
-        std::string xd = getFileInfo(finalDestination, prefix, 1); 
+        std::string xd = getFileInfo(finalDestination, prefix, 1);
+        size_t xd_length = xd.length();
         int prefixLength = prefixLengthIdentifier(spvfile, xd);
         if (prefixLength % 2 == 1 && !xd.empty())
         {
-            xd = xd.substr((xd.length() - 81), 64);
+            xd = xd.substr((xd_length - 81), 64);
         }
         else if (prefixLength % 2 == 0 && !xd.empty())
         {
-            xd = xd.substr((xd.length() - 80), 64);
+            xd = xd.substr((xd_length - 80), 64);
         }
         hashesOrdered.insert({pow(16, prefixLength), xd});
-
     }
+
     std::map<int, std::string>::iterator it;
     for (it = hashesOrdered.begin(); it != hashesOrdered.end(); it++) {
         std::string finalFilePath = destination + "/" + file_path;
@@ -215,7 +209,5 @@ int main(int argc, char *argv[])
         std::cout << finalOutput << " -> "<<it->first << std::endl;
     }
 
-    std::filesystem::remove_all("6f4b6612125fb3a0daecd2799dfd6c9c299424fd920f9b308110a2c1fbd8f443");
-
-    return 0;
+    std::filesystem::remove_all(file_path);
 }
