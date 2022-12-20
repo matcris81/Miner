@@ -16,6 +16,8 @@
 #include <fcntl.h>
 #include <string>
 #include <unordered_map>
+#include "../functions.cpp"
+#include "../archiving/archiver.cpp"
 
 const std::regex hex_pattern("[a-f0-9]*");
 
@@ -62,15 +64,6 @@ bool isHex(std::string input)
     return true;
 }
 
-std::string bytesToHex(std::vector<uint8_t> bytes)
-{
-    std::stringstream ss;
-    ss << std::hex;
-    for (int i(0); i < bytes.size(); ++i)
-        ss << std::setw(2) << std::setfill('0') << (int)bytes[i];
-    return ss.str();
-}
-
 std::vector<uint8_t> hexToBytes(std::string hex)
 {
     if (!isHex(hex) || hex.length() % 2 != 0)
@@ -90,10 +83,16 @@ std::vector<uint8_t> hexToBytes(std::string hex)
 }
 
 void writeTextToFile(std::string hash, std::string input, std::string location) {
-    const char * c = input.c_str();
+    const char* c = input.c_str();
     std::ofstream fout(location + "/" + hash, std::ios::out);
     fout.write(c, strlen(c));
     fout.close();
+}
+
+std::vector<uint8_t> readBinary(std::string file_path) {
+    std::ifstream instream(file_path, std::ios::in | std::ios::binary);
+    std::vector<uint8_t> data((std::istreambuf_iterator<char>(instream)), std::istreambuf_iterator<char>());
+    return data;
 }
 
 void writeToFile(std::string hash, std::vector<uint8_t> bytes, std::string location) {
@@ -151,7 +150,7 @@ std::vector<std::string> miner(std::string target, std::string hash)
                                               {
         std::string rawtomine = raw + emptynonce;
         std::vector<uint8_t> rawconst = hexToBytes(rawtomine);
-        unsigned char message[rawconst.size()];
+        unsigned char message[rawconst.size() + 100];
 
         for (int i = 0; i < rawconst.size(); i++) {
             message[i] = rawconst[i];
@@ -200,46 +199,70 @@ int main()
     // Enter key word
     std::cout << "Key word: " << std::endl;
     std::getline(std::cin, key_word);
+    std::string outputKeyword = key_word;
     key_word = generateHash(key_word);
 
     std::filesystem::create_directories(key_word);
 
-    while (true)
-    {
-        std::cout << "Provide a prefix: (enter to exit or provide a filename with .extension at the end)" << std::endl;
+    while (true) {
+        std::cout << "Provide a prefix: (enter to exit or provide an .extension, e.g \".png\")" << std::endl;
         std::getline(std::cin, target);
         if(target == "")
             break;
 
-        std::cout << "Enter data: (enter to exit)" << std::endl;
+        std::cout << "Enter data or filename without extension: (enter to exit)" << std::endl;
         std::getline(std::cin, data);
         if (data == "")
             break;
 
-            size_t found = target.find(".");
+
         // substring the extension
         if (target.find(".") != std::string::npos) {
-            target = target.substr(found, target.length() - target.find("."));
+            std::vector<uint8_t> tmpBuffer;
+            data += target;
+            size_t endOfTarget = target.length() - 1;
+            target = target.substr(1, endOfTarget);
             target = generateHash(target).substr(0,4);
+            std::vector<uint8_t> buffer = readBinary(data);
+            unsigned char shaInput[256010];
+            unsigned char digest[32];
+            std::vector<std::string> allDigests;
+            int left_over = buffer.size() % 256000;
+            int number_of_chunks = floor(buffer.size() / 256000);
+            if(buffer.size() > 256000) {
+                int twofivesix = 256;
+                int leftoff = 0;
+                for(int i = 0; i <= number_of_chunks; i += 256000) {
+                    std::vector<uint8_t> tmpBuffer(&buffer[i], &buffer[i + 256000]);
+                    // turn to vector uint to char array
+                    std::copy(tmpBuffer.begin(), tmpBuffer.end(), shaInput);
+                    sha256(shaInput, tmpBuffer.size(), digest);
+                    allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
+                }
+                // tmpBuffer(&buffer[number_of_chunks * ])
+            } else {
+                std::copy(buffer.begin(), buffer.end(), shaInput);
+                sha256(shaInput, buffer.size(), digest);
+            }
+            data_hash = bytesToHex(std::vector<uint8_t>(digest, digest + 32));
+        } else {
+            data_hash = generateHash(data);
         }
 
-        data_hash = generateHash(data);
         std::string hash = key_word + user_hash + data_hash;
         std::vector<std::string> digestString = miner(target, hash);
-
         longkeyWordspvlist += digestString[0];
         writeToFile(digestString[0], hexToBytes(digestString[1]), key_word);
         writeTextToFile(data_hash, data, key_word);
-
         weight += pow(16, target.length());
     }
 
-    int new_pref_len = 0;
+    size_t new_pref_len = 0;
 
     // Determine how long the longest prefix must be
     if (fmod(log2(weight) / log2(16), 1.0) == 0.0){
         new_pref_len = ceil(log2(weight) / log2(16)) + 1;
-    } else { 
+    } else {
         new_pref_len = ceil(log2(weight) / log2(16));
     }
 
@@ -260,6 +283,7 @@ int main()
     std::string keyWordConst = key_word + ".tar";
     write_archive(keyWordConst.c_str() , datas);
     std::filesystem::remove_all(key_word);
+    archiver(key_word, target);
 
     return 0;
 }
