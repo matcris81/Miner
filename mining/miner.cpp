@@ -239,7 +239,11 @@ int main()
                     sha256(shaInput, tmpBuffer.size(), digest);
                     allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
                 }
-                // tmpBuffer(&buffer[number_of_chunks * ])
+                tmpBuffer(&buffer[number_of_chunks * 2560000], &buffer[(number_of_chunks * 2560000) + left_over]);
+                std::copy(tmpBuffer.begin(), tmpBuffer.end(), shaInput);
+                sha256(shaInput, tmpBuffer.size(), digest);
+                allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
+                
             } else {
                 std::copy(buffer.begin(), buffer.end(), shaInput);
                 sha256(shaInput, buffer.size(), digest);
