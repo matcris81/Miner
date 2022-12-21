@@ -218,7 +218,6 @@ int main()
 
         // substring the extension
         if (target.find(".") != std::string::npos) {
-            std::vector<uint8_t> tmpBuffer;
             data += target;
             size_t endOfTarget = target.length() - 1;
             target = target.substr(1, endOfTarget);
@@ -230,20 +229,34 @@ int main()
             int left_over = buffer.size() % 256000;
             int number_of_chunks = floor(buffer.size() / 256000);
             if(buffer.size() > 256000) {
-                int twofivesix = 256;
-                int leftoff = 0;
-                for(int i = 0; i <= number_of_chunks; i += 256000) {
+                for(int i = 0; i <= number_of_chunks; i++) {
                     std::vector<uint8_t> tmpBuffer(&buffer[i], &buffer[i + 256000]);
                     // turn to vector uint to char array
                     std::copy(tmpBuffer.begin(), tmpBuffer.end(), shaInput);
                     sha256(shaInput, tmpBuffer.size(), digest);
                     allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
                 }
-                tmpBuffer(&buffer[number_of_chunks * 2560000], &buffer[(number_of_chunks * 2560000) + left_over]);
-                std::copy(tmpBuffer.begin(), tmpBuffer.end(), shaInput);
-                sha256(shaInput, tmpBuffer.size(), digest);
-                allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
-                
+                if(number_of_chunks % 2 != 0) {
+                    std::vector<uint8_t> tmpBuffer(&buffer[number_of_chunks * 2560000], &buffer[(number_of_chunks * 2560000) + left_over]);
+                    std::copy(tmpBuffer.begin(), tmpBuffer.end(), shaInput);
+                    sha256(shaInput, tmpBuffer.size(), digest);
+                    allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
+                }
+                int amount_of_hashes = allDigests.size();int i = 0;
+                while(allDigests.size() != 1) {
+                    std::string tmpString;
+                    if(amount_of_hashes == 0 && allDigests.size() != 2) {
+                        tmpString = allDigests[0] + allDigests[0];
+                        amount_of_hashes = allDigests.size();
+                    } else {
+                        tmpString = allDigests[0] + allDigests[1];
+                    }
+                    const unsigned char* tmp_sha_input = reinterpret_cast<const unsigned char *>(tmpString.c_str());
+                    sha256(tmp_sha_input, tmpString.length(), digest);
+                    allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32))) ;
+                    allDigests.erase(allDigests.begin(), allDigests.begin() + 2);
+                    amount_of_hashes--;
+                }
             } else {
                 std::copy(buffer.begin(), buffer.end(), shaInput);
                 sha256(shaInput, buffer.size(), digest);
