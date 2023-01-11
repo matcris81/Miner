@@ -18,6 +18,8 @@
 #include <unordered_map>
 #include "../functions.cpp"
 #include "../archiving/archiver.cpp"
+#include "../cpp-httplib/httplib.h"
+#include "json.hpp"
 
 const std::regex hex_pattern("[a-f0-9]*");
 
@@ -184,40 +186,44 @@ std::vector<std::string> miner(std::string target, std::string hash)
     return {digeststring, messageString};
 }
 
-int main()
-{
+void mining(std::string data, std::string target, std::string user_hash, std::string key_word_hash, int file_or_txt) {
+
+    if(file_or_txt == 1) {
+        user_hash = generateHash(user_hash);
+        key_word_hash = generateHash(key_word_hash);
+    }
     // Initialize variables
-    std::string target, data, key_word, user_hash, data_hash, spvList, spvlistHash, pref_ex, longkeyWordspvlist;
+    std::string data_hash, spvlistHash, pref_ex, longkeyWordspvlist;
     std::string emptynonce = "0000000000000000";
     int weight = 0;
 
-    // Enter username 
-    std::cout << "Username: " << std::endl;
-    std::getline(std::cin, user_hash);
-    user_hash = generateHash(user_hash);
+    // // Enter username 
+    // std::cout << "Username: " << std::endl;
+    // std::getline(std::cin, user_hash);
+    // user_hash = generateHash(user_hash);
 
-    // Enter key word
-    std::cout << "Key word: " << std::endl;
-    std::getline(std::cin, key_word);
-    std::string outputKeyword = key_word;
-    key_word = generateHash(key_word);
+    // // Enter key word
+    // std::cout << "Key word: " << std::endl;
+    // std::getline(std::cin, key_word);
+    // std::string outputKeyword = key_word;
+    // key_word = generateHash(key_word);
 
-    std::filesystem::create_directories(key_word);
+    std::filesystem::create_directories(key_word_hash);
 
     while (true) {
-        std::cout << "Provide a prefix: (enter to exit or provide an .extension, e.g \".png\")" << std::endl;
-        std::getline(std::cin, target);
-        if(target == "")
-            break;
+        // std::cout << "Provide a prefix: (enter to exit or provide an .extension, e.g \".png\")" << std::endl;
+        // std::getline(std::cin, target);
+        // if(target == "")
+        //     break;
 
-        std::cout << "Enter data or filename without extension: (enter to exit)" << std::endl;
-        std::getline(std::cin, data);
-        if (data == "")
-            break;
+        // std::cout << "Enter data or filename without extension: (enter to exit)" << std::endl;
+        // std::getline(std::cin, data);
+        // if (data == "")
+        //     break;
 
 
         // substring the extension
-        if (target.find(".") != std::string::npos) {
+        if (file_or_txt == 0) {
             data += target;
             size_t endOfTarget = target.length() - 1;
             target = target.substr(1, endOfTarget);
@@ -266,11 +272,11 @@ int main()
             data_hash = generateHash(data);
         }
 
-        std::string hash = key_word + user_hash + data_hash;
+        std::string hash = key_word_hash + user_hash + data_hash;
         std::vector<std::string> digestString = miner(target, hash);
         longkeyWordspvlist += digestString[0];
-        writeToFile(digestString[0], hexToBytes(digestString[1]), key_word);
-        writeTextToFile(data_hash, data, key_word);
+        writeToFile(digestString[0], hexToBytes(digestString[1]), key_word_hash);
+        writeTextToFile(data_hash, data, key_word_hash);
         weight += pow(16, target.length());
     }
 
@@ -289,18 +295,48 @@ int main()
     spvlistHash = generateHash(longkeyWordspvlist);
     std::vector<std::string> digestMsg = miner(pref_ex, spvlistHash);
 
-    insertSPVList(longkeyWordspvlist, spvlistHash, key_word);
-    writeToFile(digestMsg[0], hexToBytes(spvlistHash), key_word);
+    insertSPVList(longkeyWordspvlist, spvlistHash, key_word_hash);
+    writeToFile(digestMsg[0], hexToBytes(spvlistHash), key_word_hash);
 
     std::vector<std::string> datas;
-    for (const auto & entry : std::filesystem::directory_iterator(key_word)){
+    for (const auto & entry : std::filesystem::directory_iterator(key_word_hash)){
         datas.push_back(entry.path());
     }
 
-    std::string keyWordConst = key_word + ".tar";
+    std::string keyWordConst = key_word_hash + ".tar";
     write_archive(keyWordConst.c_str() , datas);
-    std::filesystem::remove_all(key_word);
-    archiver(key_word, target);
+    std::filesystem::remove_all(key_word_hash);
+    archiver(key_word_hash, target);
+}
+
+int main()
+{
+    httplib::Server server;
+
+    if (!server.is_valid()) {
+        std::cout<< "server has an error..." << std::endl;
+        return -1;
+    }
+    server.Post("/", [](const httplib::Request& req, httplib::Response& res){
+        res.set_header("Access-Control-Allow-Origin", "http://localhost:5173");
+        std::string user = req.get_param_value("input_1");
+        if(req.has_param("input_3")) {
+            std::cout << "During" << std::endl;
+            std::string key_word = req.get_param_value("input_2");
+            std::string target = req.get_param_value("input_3");
+            std::string data = req.get_param_value("input_4");
+            mining(data, target, user, key_word, 1);
+        } else {
+            std::string data= req.get_param_value("input_2");
+            mining(data, "", user, "", 0);
+        }
+        std::cout << "Target: " << req.get_param_value("input_3") << std::endl;
+
+        res.set_content("Success", "text/plain");
+    });
+
+
+    server.listen("localhost", 5557);
 
     return 0;
 }
