@@ -1,15 +1,19 @@
 <script>
+    import axios from 'axios';
+
     let textVisible = false;
     let fileVissible = false;
 
-    function textRadioClicked() {
+    function textRadioClicked(event) {
         textVisible = true;
         fileVissible = false;
+        event.stopPropagation();
     }
 
-    function fileRadioClicked() {
+    function fileRadioClicked(event) {
         fileVissible = true;
         textVisible = false;
+        event.stopPropagation();
     }
 
     let username = '';
@@ -17,28 +21,33 @@
     let prefix = '';
     let data = '';
     let fileExtension ='';
+    let fileOrText = 1;
 
-    async function textInput(fileOrText) {
-        const formData = new FormData();
+    const postMine = async() =>{
+        let params = {}
 
-        formData.append("input_1", username);
+        // formData.append("input_1", username);
         if(fileOrText == 1) {
-            formData.append("input_2", keyword);
-            formData.append("input_3", prefix);
-            formData.append("input_4", data);
+            // formData.append("input_2", keyword);
+            // formData.append("input_3", prefix);
+            // formData.append("input_4", data);
+            params = {
+                input_1: username,
+                input_2: keyword,
+                input_3: prefix,
+                input_4: data,
+            };
         } else if(fileOrText == 2) {
-            formData.append("input_5", fileExtension);
+            // formData.append("input_2", fileExtension);
+            params = {
+                input_1: username,
+                input_2: fileExtension,
+            };
         }
 
+        const reply = axios.post('http://localhost:5557' + "/mine", null, {params}).then((res)=>{res}).catch((e)=>{console.error(e)})
 
-        const response = await fetch('http://localhost:8000/', {
-            method: 'POST',
-            body: textInfo.get()
-            });
-        const result = await response.text();
-        console.log(result);
     }
-
 </script>
 <body>
     <h1>
@@ -61,7 +70,7 @@
             <input type="text" bind:value={prefix}><br><br>
             <span class="data"> Data: </span><span>///////</span>
             <input type="text" bind:value={data}><br><br>
-            <button on:click={textInput(1)}>Submit</button>
+            <!-- <button on:click={textInput(1)}>Submit</button> -->
         </div>
     {/if}
     {#if fileVissible}
@@ -69,9 +78,10 @@
             <span class="data"> Data(extension ie. '.png'): </span><span></span>
             <input type="text" bind:value={fileExtension}><br><br>
         </div>
-        <button on:click={textInput(2)}>Submit</button>
+        <!-- <button on:click={textInput(2)}>Submit</button> -->
     {/if}
 </body>
+<button on:click={postMine}>Submit</button>
 <style>
 body {
     text-align: center;

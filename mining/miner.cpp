@@ -187,17 +187,18 @@ std::vector<std::string> miner(std::string target, std::string hash)
 }
 
 void mining(std::string data, std::string target, std::string user_hash, std::string key_word_hash, int file_or_txt) {
-
-    if(file_or_txt == 1) {
-        user_hash = generateHash(user_hash);
-        key_word_hash = generateHash(key_word_hash);
-    }
-    // Initialize variables
     std::string data_hash, spvlistHash, pref_ex, longkeyWordspvlist;
     std::string emptynonce = "0000000000000000";
     int weight = 0;
 
-    // // Enter username 
+    if(file_or_txt == 0) {
+        user_hash = generateHash(user_hash);
+        key_word_hash = generateHash(key_word_hash);
+    }
+ 
+    // Initialize variables
+
+    // Enter username 
     // std::cout << "Username: " << std::endl;
     // std::getline(std::cin, user_hash);
     // user_hash = generateHash(user_hash);
@@ -210,7 +211,7 @@ void mining(std::string data, std::string target, std::string user_hash, std::st
 
     std::filesystem::create_directories(key_word_hash);
 
-    while (true) {
+    // while (true) {
         // std::cout << "Provide a prefix: (enter to exit or provide an .extension, e.g \".png\")" << std::endl;
         // std::getline(std::cin, target);
         // if(target == "")
@@ -223,8 +224,12 @@ void mining(std::string data, std::string target, std::string user_hash, std::st
 
 
         // substring the extension
-        if (file_or_txt == 0) {
-            data += target;
+        // if (data.find(".") == std::string::npos) {
+        if(file_or_txt == 1){
+            std::string file = data.substr(0, file.find("."));
+            std::cout << file << std::endl;
+            std::string extension = data.substr(file.find("."), data.length());
+            std::cout << extension << std::endl;
             size_t endOfTarget = target.length() - 1;
             target = target.substr(1, endOfTarget);
             target = generateHash(target).substr(0,4);
@@ -278,7 +283,7 @@ void mining(std::string data, std::string target, std::string user_hash, std::st
         writeToFile(digestString[0], hexToBytes(digestString[1]), key_word_hash);
         writeTextToFile(data_hash, data, key_word_hash);
         weight += pow(16, target.length());
-    }
+    // }
 
     size_t new_pref_len = 0;
 
@@ -317,26 +322,34 @@ int main()
         std::cout<< "server has an error..." << std::endl;
         return -1;
     }
-    server.Post("/", [](const httplib::Request& req, httplib::Response& res){
-        res.set_header("Access-Control-Allow-Origin", "http://localhost:5173");
+
+    server.Post("/mine", [&](const httplib::Request& req, httplib::Response& res){
+        res.set_header("Access-Control-Allow-Origin", "*");
         std::string user = req.get_param_value("input_1");
-        if(req.has_param("input_3")) {
-            std::cout << "During" << std::endl;
-            std::string key_word = req.get_param_value("input_2");
-            std::string target = req.get_param_value("input_3");
-            std::string data = req.get_param_value("input_4");
-            mining(data, target, user, key_word, 1);
-        } else {
-            std::string data= req.get_param_value("input_2");
-            mining(data, "", user, "", 0);
-        }
-        std::cout << "Target: " << req.get_param_value("input_3") << std::endl;
+       if(req.has_param("input_3")) {
+          std::string key_word = req.get_param_value("input_2");
+          std::string target = req.get_param_value("input_3");
+          std::string data = req.get_param_value("input_4");
+          mining(data, target, user, key_word, 0);
+       } else {
+          std::string data= req.get_param_value("input_2");
+          mining(data, "", user, "", 1);
+       }
 
         res.set_content("Success", "text/plain");
+        res.status = 200;
     });
 
+    server.Options("/(.*)", [&](const httplib::Request & /*req*/, httplib::Response &res)
+    {
+        res.set_header("Access-Control-Allow-Methods", " POST, GET, OPTIONS");
+        res.set_header("Content-Type", "text/html; charset=utf-8");
+        res.set_header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Accept");
+        res.set_header("Access-Control-Allow-Origin", "*");
+        res.set_header("Connection", "close");
+    });
 
-    server.listen("localhost", 5557);
+    server.listen("0.0.0.0", 5557);
 
     return 0;
 }

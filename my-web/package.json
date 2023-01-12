@@ -21,6 +21,8 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"rollup-plugin-css-only": "^4.3.0"
+		"axios": "^1.2.2",
+		"rollup-plugin-css-only": "^4.3.0",
+		"socket.io-client": "^4.5.4"
 	}
 }

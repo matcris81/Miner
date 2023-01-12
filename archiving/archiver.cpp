@@ -109,8 +109,8 @@ std::string returnGreatestFileName(std::string file_path, std::string prefixStri
         size_t fileNameLength = file_name.length();
         if (file_name.substr(0, prefixStringLength) == prefixString)
         {
-            std::string tmp = file_name.substr(prefixStringLength, fileNameLength);
-            const char *charFile = tmp.c_str();
+            // std::string tmp = file_name.substr(prefixStringLength, fileNameLength);
+            const char *charFile = file_name.c_str();
             int i = 0;
             while (charFile[i] == compareToThis[i])
             {
@@ -123,7 +123,6 @@ std::string returnGreatestFileName(std::string file_path, std::string prefixStri
             }
         }
     }
-
     return greatestFileName;
 }
 
@@ -180,7 +179,6 @@ void archiver(std::string file_path, std::string prefixString)
     for (size_t i = 0; i < x.length() - 2; i += 64) {
         archiveFiles.push_back(x.substr(i, 64));
     }
-
     sort(archiveFiles.begin(), archiveFiles.end());
     archiveFiles.erase(unique(archiveFiles.begin(), archiveFiles.end()), archiveFiles.end());
     std::multimap<int, std::string, std::greater<int>> hashesOrdered;
@@ -208,6 +206,7 @@ void archiver(std::string file_path, std::string prefixString)
         std::string finalOutput = getFileInfo(finalFilePath, 0, 2);
         std::cout << finalOutput << " -> "<<it->first << std::endl;
     }
-
+    
     std::filesystem::remove_all(file_path);
+    exit(0);
 }
