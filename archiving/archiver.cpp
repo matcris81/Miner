@@ -108,7 +108,7 @@ std::string returnGreatestFileName(std::string file_path, std::string prefixStri
         std::string file_name = s.substr(findLast, sLength);
         size_t fileNameLength = file_name.length();
         // std::cout << "x: " << prefixString << std::endl;
-        if (file_name.substr(0, prefixStringLength) == prefixString)
+        if (file_name.substr(0, 4) == "21e8")
         {
             // std::string tmp = file_name.substr(prefixStringLength, fileNameLength);
             const char *charFile = file_name.c_str();
@@ -149,7 +149,7 @@ std::string getFileInfo(std::string filePath, int prefixLen, int x)
         finalText = buffer.str();
     }
 
-    std::cout << "finalText: " << finalText << std::endl;
+    //std::cout << "finalText: " << finalText << std::endl;
     return finalText;
 }
 
@@ -178,10 +178,15 @@ void archiver(std::string file_path, std::string prefixString)
     std::string greatest_file_path = file_path + "/" + returnGreatestFileName(file_path, prefixString, prefix);
     std::string newFileContents = getFileInfo(greatest_file_path, prefix, 1);
     std::vector<std::string> archiveFiles;
+    std::cout << "greatest_file_path: "<< greatest_file_path << std::endl;
+
     std::string x = getFileInfo(file_path + "/" + newFileContents, prefix, 1);
     // std::cout << "x: " << getFileInfo(file_path + "/" + newFileContents, prefix, 1)<< std::endl;
     for (size_t i = 0; i < x.length() - 2; i += 64) {
         archiveFiles.push_back(x.substr(i, 64));
+    }
+    for(auto i: archiveFiles) {
+        std::cout << "Archive files: " << i << std::endl;
     }
     sort(archiveFiles.begin(), archiveFiles.end());
     archiveFiles.erase(unique(archiveFiles.begin(), archiveFiles.end()), archiveFiles.end());

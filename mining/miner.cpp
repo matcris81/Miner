@@ -223,15 +223,16 @@ void mining(std::string data, std::string target, std::string user_hash, std::st
 
         // substring the extension
         // if (data.find(".") == std::string::npos) {
+            unsigned char digest[32];
+            unsigned char shaInput[256010];
+            std::vector<uint8_t> buffer;
         if(file_or_txt == 1){
             std::string file = data.substr(0, data.find("."));
             std::string extension = data.substr(data.find("."), data.length());
             size_t endOfTarget = file.length();
             target = file.substr(0, endOfTarget);
             target = generateHash(target).substr(0,4);
-            std::vector<uint8_t> buffer = readBinary(data);
-            unsigned char shaInput[256010];
-            unsigned char digest[32];
+            buffer = readBinary(data);
             std::vector<std::string> allDigests;
             int left_over = buffer.size() % 256000;
             int number_of_chunks = floor(buffer.size() / 256000);
@@ -269,6 +270,7 @@ void mining(std::string data, std::string target, std::string user_hash, std::st
                 sha256(shaInput, buffer.size(), digest);
             }
             data_hash = bytesToHex(std::vector<uint8_t>(digest, digest + 32));
+            std::cout << "Data hash: " << data_hash << std::endl;
         } else {
             data_hash = generateHash(data);
         }
@@ -277,7 +279,11 @@ void mining(std::string data, std::string target, std::string user_hash, std::st
         std::vector<std::string> digestString = miner(target, hash);
         longkeyWordspvlist += digestString[0];
         writeToFile(digestString[0], hexToBytes(digestString[1]), key_word_hash);
-        writeTextToFile(data_hash, data, key_word_hash);
+        if(file_or_txt == 1) {
+            writeToFile(data_hash, buffer, key_word_hash);
+        } else {
+            writeTextToFile(data_hash, data, key_word_hash);
+        }
         weight += pow(16, target.length());
     // }
 
