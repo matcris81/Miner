@@ -21,27 +21,23 @@
     let prefix = '';
     let data = '';
     let fileExtension ='';
-    let fileOrText = 1;
+    // let fileOrText = 1;
 
     const postMine = async() =>{
         let params = {}
 
-        // formData.append("input_1", username);
-        if(fileOrText == 1) {
-            // formData.append("input_2", keyword);
-            // formData.append("input_3", prefix);
-            // formData.append("input_4", data);
+        if(textVisible == true) {
             params = {
                 input_1: username,
                 input_2: keyword,
                 input_3: prefix,
                 input_4: data,
             };
-        } else if(fileOrText == 2) {
-            // formData.append("input_2", fileExtension);
+        } else if(fileVissible == true) {
             params = {
                 input_1: username,
-                input_2: fileExtension,
+                input_2: keyword,
+                input_3: fileExtension,
             };
         }
 
@@ -75,6 +71,8 @@
     {/if}
     {#if fileVissible}
         <div>
+            <span class="keyword"> Key word: </span>
+            <input type="text" bind:value={keyword}><br><br>
             <span class="data"> Data(extension ie. '.png'): </span><span></span>
             <input type="text" bind:value={fileExtension}><br><br>
         </div>

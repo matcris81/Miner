@@ -107,6 +107,7 @@ std::string returnGreatestFileName(std::string file_path, std::string prefixStri
         size_t prefixStringLength = prefixString.length();
         std::string file_name = s.substr(findLast, sLength);
         size_t fileNameLength = file_name.length();
+        // std::cout << "x: " << prefixString << std::endl;
         if (file_name.substr(0, prefixStringLength) == prefixString)
         {
             // std::string tmp = file_name.substr(prefixStringLength, fileNameLength);
@@ -147,6 +148,8 @@ std::string getFileInfo(std::string filePath, int prefixLen, int x)
         buffer << indata.rdbuf();
         finalText = buffer.str();
     }
+
+    std::cout << "finalText: " << finalText << std::endl;
     return finalText;
 }
 
@@ -175,7 +178,8 @@ void archiver(std::string file_path, std::string prefixString)
     std::string greatest_file_path = file_path + "/" + returnGreatestFileName(file_path, prefixString, prefix);
     std::string newFileContents = getFileInfo(greatest_file_path, prefix, 1);
     std::vector<std::string> archiveFiles;
-    std::string x  = getFileInfo(file_path + "/" + newFileContents, prefix, 1);
+    std::string x = getFileInfo(file_path + "/" + newFileContents, prefix, 1);
+    // std::cout << "x: " << getFileInfo(file_path + "/" + newFileContents, prefix, 1)<< std::endl;
     for (size_t i = 0; i < x.length() - 2; i += 64) {
         archiveFiles.push_back(x.substr(i, 64));
     }

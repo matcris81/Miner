@@ -191,10 +191,8 @@ void mining(std::string data, std::string target, std::string user_hash, std::st
     std::string emptynonce = "0000000000000000";
     int weight = 0;
 
-    if(file_or_txt == 0) {
-        user_hash = generateHash(user_hash);
-        key_word_hash = generateHash(key_word_hash);
-    }
+    user_hash = generateHash(user_hash);
+    key_word_hash = generateHash(key_word_hash);
  
     // Initialize variables
 
@@ -226,12 +224,10 @@ void mining(std::string data, std::string target, std::string user_hash, std::st
         // substring the extension
         // if (data.find(".") == std::string::npos) {
         if(file_or_txt == 1){
-            std::string file = data.substr(0, file.find("."));
-            std::cout << file << std::endl;
-            std::string extension = data.substr(file.find("."), data.length());
-            std::cout << extension << std::endl;
-            size_t endOfTarget = target.length() - 1;
-            target = target.substr(1, endOfTarget);
+            std::string file = data.substr(0, data.find("."));
+            std::string extension = data.substr(data.find("."), data.length());
+            size_t endOfTarget = file.length();
+            target = file.substr(0, endOfTarget);
             target = generateHash(target).substr(0,4);
             std::vector<uint8_t> buffer = readBinary(data);
             unsigned char shaInput[256010];
@@ -326,14 +322,15 @@ int main()
     server.Post("/mine", [&](const httplib::Request& req, httplib::Response& res){
         res.set_header("Access-Control-Allow-Origin", "*");
         std::string user = req.get_param_value("input_1");
-       if(req.has_param("input_3")) {
+       if(req.has_param("input_4")) {
           std::string key_word = req.get_param_value("input_2");
           std::string target = req.get_param_value("input_3");
           std::string data = req.get_param_value("input_4");
           mining(data, target, user, key_word, 0);
        } else {
-          std::string data= req.get_param_value("input_2");
-          mining(data, "", user, "", 1);
+        std::string key_word = req.get_param_value("input_2");
+          std::string data= req.get_param_value("input_3");
+          mining(data, "", user, key_word, 1);
        }
 
         res.set_content("Success", "text/plain");
