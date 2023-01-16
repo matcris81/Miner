@@ -104,9 +104,7 @@ std::string returnGreatestFileName(std::string file_path, std::string prefixStri
         char* compareToThis = "21e8000000000000";
         size_t findLast = s.find_last_of('/') + 1;
         size_t sLength = s.length();
-        size_t prefixStringLength = prefixString.length();
         std::string file_name = s.substr(findLast, sLength);
-        size_t fileNameLength = file_name.length();
         // std::cout << "x: " << prefixString << std::endl;
         if (file_name.substr(0, 4) == "21e8")
         {
@@ -178,15 +176,10 @@ void archiver(std::string file_path, std::string prefixString)
     std::string greatest_file_path = file_path + "/" + returnGreatestFileName(file_path, prefixString, prefix);
     std::string newFileContents = getFileInfo(greatest_file_path, prefix, 1);
     std::vector<std::string> archiveFiles;
-    std::cout << "greatest_file_path: "<< greatest_file_path << std::endl;
 
     std::string x = getFileInfo(file_path + "/" + newFileContents, prefix, 1);
-    // std::cout << "x: " << getFileInfo(file_path + "/" + newFileContents, prefix, 1)<< std::endl;
     for (size_t i = 0; i < x.length() - 2; i += 64) {
         archiveFiles.push_back(x.substr(i, 64));
-    }
-    for(auto i: archiveFiles) {
-        std::cout << "Archive files: " << i << std::endl;
     }
     sort(archiveFiles.begin(), archiveFiles.end());
     archiveFiles.erase(unique(archiveFiles.begin(), archiveFiles.end()), archiveFiles.end());
@@ -213,7 +206,7 @@ void archiver(std::string file_path, std::string prefixString)
         std::string finalFilePath = destination + "/" + file_path;
         finalFilePath = finalFilePath + "/" + (*it).second;
         std::string finalOutput = getFileInfo(finalFilePath, 0, 2);
-        std::cout << finalOutput << " -> "<<it->first << std::endl;
+        // std::cout << finalOutput << " -> "<<it->first << std::endl;
     }
     
     std::filesystem::remove_all(file_path);
