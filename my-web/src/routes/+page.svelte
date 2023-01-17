@@ -69,20 +69,18 @@
     function make_archiver_ready() {
         archiver_ready = "true";
     }
+    
+    let files;
 
-    let root = [
-		{
-			name: 'Important work stuff',
-			files: [
-				{ name: 'quarterly-results.xlsx' }
-			]
-		},
-	];
+    $: if (files) {
+        // Note that `files` is of type `FileList`, not an Array:
+        // https://developer.mozilla.org/en-US/docs/Web/API/FileList
+        console.log(files);
 
-    // const express = require('express');
-    // const app = express();
-    // const bodyParser = require('body-parser');
-    // const fs = require('fs');
+        for (const file of files) {
+            console.log(`${file.name}: ${file.size} bytes`);
+        }
+    }
 
 </script>
 <body>
@@ -121,9 +119,17 @@
     {/if}
         <br><br><button on:click={make_archiver_ready} on:click={postMine}>Submit</button><br><br><br>
     </form>
-    <div class="fileExplorer">
-        <Folder name="Home" files={root} expanded/>
-    </div>
+
+    <input bind:files id="many" multiple type="file" class="files"/>
+
+    {#if files}
+        <h2 class="selected">Selected files:</h2>
+        {#each Array.from(files) as file}
+            <p class="file-name">{file.name} ({file.size} bytes) </p>
+        {/each}
+    {/if}
+
+
 </body>
 <style>
 body {
@@ -188,6 +194,7 @@ input[type=text]:focus {
 
 .username{
     color: white;
+    text-align: center;
 }
 
 .prefix {
@@ -210,20 +217,23 @@ input[type=text]:focus {
     color: white;
 }
 
+.selected{
+    color: white;
+}
+
+.file-name{
+    color: white;
+}
+
+.files{
+    color: white;
+}
+
 form {
     display: inline-block;
 }
 
-.fileExplorer {
-    display: flex;
-    height: 300px;
-    width: 500px;
-    justify-content: center;
-    align-items: center;
-    background-color: white;
-}
-
 :global(body) {
-    background-color: lightblue;
+    background-color: black;
 }
 </style>

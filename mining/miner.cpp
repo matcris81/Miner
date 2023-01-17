@@ -372,7 +372,6 @@ int main()
           struct for_archiving writing_file = mining(data, target, user, key_word, 0);
           std::string archive_ready = req.get_param_value("input_5");
           if(archive_ready == "true") {
-            std::cout << "Not supposed to be here" << std::endl;
             write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
             archiver(writing_file.key_word_hash, writing_file.target);
             std::filesystem::remove_all(writing_file.key_word_hash);
@@ -383,7 +382,6 @@ int main()
           struct for_archiving writing_file = mining(data, "", user, key_word, 1);
           std::string archive_ready = req.get_param_value("input_4");
           if(archive_ready == "true"){
-            std::cout << "Not supposed to be here" << std::endl;
             write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
             archiver(writing_file.key_word_hash, writing_file.target);
             std::filesystem::remove_all(writing_file.key_word_hash);
@@ -403,17 +401,22 @@ int main()
 
     server.listen("0.0.0.0", 5557);
 
-    std::ifstream archive("archive.tar", std::ios::binary);
-    std::string archive_data((std::istreambuf_iterator<char>(archive)), std::istreambuf_iterator<char>());
+    // std::ifstream archive("archive.tar", std::ios::binary);
+    // std::string archive_data((std::istreambuf_iterator<char>(archive)), std::istreambuf_iterator<char>());
 
-    httplib::Client client("localhost", 3000);
-    auto res = client.Post("/upload", "application/x-tar", archive_data);
+    // std::cout << archive_data << std::endl;
 
-    if (res && res->status == 200) {
-        std::cout << "Archive successfully sent" << std::endl;
-    } else {
-        std::cout << "Failed to send archive" << std::endl;
-    }
+    // httplib::Client client("localhost", 3000);
+    // auto res = client.Post("/upload", "application/x-tar", archive_data);
+
+    // if (res && res->status == 200)
+    // {
+    //     std::cout << "Archive successfully sent" << std::endl;
+    // }
+    // else
+    // {
+    //     std::cout << "Failed to send archive" << std::endl;
+    // }
 
     return 0;
 }
