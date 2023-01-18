@@ -66,7 +66,7 @@
         const formData = new FormData(event.target)
     
         // [Use formData]
-        console.log([...formData]);
+        // console.log([...formData]);
 
         event.target.reset();
     }

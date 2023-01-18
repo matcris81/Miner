@@ -395,6 +395,7 @@ int main()
        }
 
     nlohmann::json data_send;
+    data_send[writing_file.key_word_hash] = writing_file.key_word_hash;
     for (const auto &entry : std::filesystem::directory_iterator(writing_file.key_word_hash))
     {
         std::string file_path = entry.path();
@@ -403,14 +404,7 @@ int main()
 
         fileContents = readBinary(file_path);
 
-        // std::cout << file_path << ": ";
-
-        // for(uint8_t a: fileContents) {
-        //     std::cout << a;
-        // }
-
-        // std::cout << std::endl;
-        data_send = {{file_name, fileContents}};
+        data_send.push_back({file_name, fileContents});
     }
 
         std::string json_str = data_send.dump();
