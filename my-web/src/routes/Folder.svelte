@@ -1,6 +1,5 @@
 <script>
 	import File from './File.svelte';
-	import myImage from '../routes/icons/not-expanded.png'
 
 	export let expanded = false;
 	export let name;
@@ -30,7 +29,7 @@
 <style>
 	button {
 		padding: 0 0 0 1.5em;
-		background: url(../routes/icons/not-expanded.png) 0 0.1em no-repeat;
+		background: url(/tutorial/icons/folder.svg) 0 0.1em no-repeat;
 		background-size: 1em 1em;
 		font-weight: bold;
 		cursor: pointer;
@@ -39,7 +38,7 @@
 	}
 
 	.expanded {
-		background-image: url(../routes/icons/expanded.png);
+		background-image: url(/tutorial/icons/folder-open.svg);
 	}
 
 	ul {

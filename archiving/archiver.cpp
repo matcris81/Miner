@@ -105,7 +105,6 @@ std::string returnGreatestFileName(std::string file_path, std::string prefixStri
         size_t findLast = s.find_last_of('/') + 1;
         size_t sLength = s.length();
         std::string file_name = s.substr(findLast, sLength);
-        std::cout << "file_name.substr(0, 4): " << file_name.substr(0, 4) << std::endl;
         if (file_name.substr(0, 1) == "2")
         {
             // std::string tmp = file_name.substr(prefixStringLength, fileNameLength);
@@ -212,5 +211,5 @@ void archiver(std::string file_path, std::string prefixString)
     }
     
     // std::filesystem::remove_all(file_path);
-    exit(0);
+    // exit(0);
 }

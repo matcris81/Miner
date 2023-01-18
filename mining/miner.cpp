@@ -195,14 +195,14 @@ std::vector<std::string> miner(std::string target, std::string hash)
     return {digeststring, messageString};
 }
 
-struct for_archiving mining(std::string data, std::string target, std::string user_hash, std::string key_word_hash, int file_or_txt)
+struct for_archiving mining(std::string data, std::string target, std::string user_hash, std::string key_word, int file_or_txt)
 {
-    std::string data_hash, spvlistHash, pref_ex, longkeyWordspvlist;
+    std::string data_hash, spvlistHash, pref_ex, longkeyWordspvlist, key_word_hash;
     std::string emptynonce = "0000000000000000";
     int weight = 0;
 
     user_hash = generateHash(user_hash);
-    key_word_hash = generateHash(key_word_hash);
+    key_word_hash = generateHash(key_word);
 
     // Initialize variables
 
@@ -218,6 +218,7 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     // key_word = generateHash(key_word);
 
     std::filesystem::create_directories(key_word_hash);
+    writeTextToFile(key_word_hash, key_word, key_word_hash);
 
     // std::cout << "Provide a prefix: (enter to exit or provide an .extension, e.g \".png\")" << std::endl;
     // std::getline(std::cin, target);
@@ -365,30 +366,57 @@ int main()
                 {
         res.set_header("Access-Control-Allow-Origin", "*");
         std::string user = req.get_param_value("input_1");
+        std::string key_word;
+        std::string target;
+        std::string data;
+        std::string archive_ready;
+        struct for_archiving writing_file;
        if(req.has_param("input_5")) {
-          std::string key_word = req.get_param_value("input_2");
-          std::string target = req.get_param_value("input_3");
-          std::string data = req.get_param_value("input_4");
-          struct for_archiving writing_file = mining(data, target, user, key_word, 0);
-          std::string archive_ready = req.get_param_value("input_5");
+          key_word = req.get_param_value("input_2");
+          target = req.get_param_value("input_3");
+          data = req.get_param_value("input_4");
+          writing_file = mining(data, target, user, key_word, 0);
+          archive_ready = req.get_param_value("input_5");
           if(archive_ready == "true") {
             write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
             archiver(writing_file.key_word_hash, writing_file.target);
-            std::filesystem::remove_all(writing_file.key_word_hash);
+            // std::filesystem::remove_all(writing_file.key_word_hash);
           }
        } else {
-        std::string key_word = req.get_param_value("input_2");
-          std::string data= req.get_param_value("input_3");
-          struct for_archiving writing_file = mining(data, "", user, key_word, 1);
-          std::string archive_ready = req.get_param_value("input_4");
+            key_word = req.get_param_value("input_2");
+            data= req.get_param_value("input_3");
+          writing_file = mining(data, "", user, key_word, 1);
+            archive_ready = req.get_param_value("input_4");
           if(archive_ready == "true"){
             write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
             archiver(writing_file.key_word_hash, writing_file.target);
-            std::filesystem::remove_all(writing_file.key_word_hash);
+            // std::filesystem::remove_all(writing_file.key_word_hash);
           }
        }
 
-        res.set_content("Success", "text/plain");
+    nlohmann::json data_send;
+    for (const auto &entry : std::filesystem::directory_iterator(writing_file.key_word_hash))
+    {
+        std::string file_path = entry.path();
+        std::string file_name = file_path.substr(file_path.find_last_of('/'), file_name.length());
+        std::vector<uint8_t> fileContents;
+
+        fileContents = readBinary(file_path);
+
+        // std::cout << file_path << ": ";
+
+        // for(uint8_t a: fileContents) {
+        //     std::cout << a;
+        // }
+
+        // std::cout << std::endl;
+        data_send = {{file_name, fileContents}};
+    }
+
+        std::string json_str = data_send.dump();
+        res.set_content(json_str, "application/json");
+
+        // res.set_content("Success", "text/plain");
         res.status = 200; });
 
     server.Options("/(.*)", [&](const httplib::Request & /*req*/, httplib::Response &res)
@@ -400,23 +428,6 @@ int main()
         res.set_header("Connection", "close"); });
 
     server.listen("0.0.0.0", 5557);
-
-    // std::ifstream archive("archive.tar", std::ios::binary);
-    // std::string archive_data((std::istreambuf_iterator<char>(archive)), std::istreambuf_iterator<char>());
-
-    // std::cout << archive_data << std::endl;
-
-    // httplib::Client client("localhost", 3000);
-    // auto res = client.Post("/upload", "application/x-tar", archive_data);
-
-    // if (res && res->status == 200)
-    // {
-    //     std::cout << "Archive successfully sent" << std::endl;
-    // }
-    // else
-    // {
-    //     std::cout << "Failed to send archive" << std::endl;
-    // }
 
     return 0;
 }

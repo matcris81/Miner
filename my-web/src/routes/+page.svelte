@@ -2,32 +2,36 @@
     import axios from 'axios';
     import Folder from './Folder.svelte';
 
+    // function importImg() {
+        // import x from '../../../mining/'+ + '.jpg'
+    // }
+    
     let textVisible = false;
     let fileVissible = false;
-
+    
     function textRadioClicked(event) {
         textVisible = true;
         fileVissible = false;
         event.stopPropagation();
     }
-
+    
     function fileRadioClicked(event) {
         fileVissible = true;
         textVisible = false;
         event.stopPropagation();
     }
-
+    
     function clearTextInputs() {
         document.getElementById("inputkeyword").value = "";
         document.getElementById("inputprefix").value = "";
         document.getElementById("inputdata").value = "";
     }
-
+    
     function clearFileInputs() {
         document.getElementById("inputkeyword2").value = "";
         document.getElementById("inputFileextension").value = "";
     }
-
+    
     let username = '';
     let keyword = '';
     let prefix = '';
@@ -57,6 +61,7 @@
 
         const reply = axios.post('http://localhost:5557' + "/mine", null, {params}).then((res)=>{res}).catch((e)=>{console.error(e)})
     }
+
     const addVendorTest = async (event) => {
         const formData = new FormData(event.target)
     
@@ -70,7 +75,7 @@
         archiver_ready = "true";
     }
     
-    let files;
+    // let files;
 
     $: if (files) {
         // Note that `files` is of type `FileList`, not an Array:
@@ -81,6 +86,64 @@
             console.log(`${file.name}: ${file.size} bytes`);
         }
     }
+    let beans = '';
+
+    let root = [
+		{
+			name: 'Important work stuff',
+			files: [
+				{ name: 'quarterly-results.xlsx' }
+			]
+		},
+		{
+			name: 'Animal GIFs',
+			files: [
+				{
+					name: 'Dogs',
+					files: [
+						{ name: 'treadmill.gif' },
+						{ name: 'rope-jumping.gif' }
+					]
+				},
+				{
+					name: 'Goats',
+					files: [
+						{ name: 'parkour.gif' },
+						{ name: 'rampage.gif' }
+					]
+				},
+				{ name: 'cat-roomba.gif' },
+				{ name: 'duck-shuffle.gif' },
+				{ name: 'monkey-on-a-pig.gif' }
+			]
+		},
+		{ name: 'TODO.md' }
+	];
+
+    let selectedFiles;
+    function handleFileSelection() {
+        let file = selectedFiles[0];
+        let reader = new FileReader();
+        reader.onload = (e) => {
+            let contents = e.target.result;
+            console.log(contents);
+        };
+        reader.readAsText(file);
+    }
+
+    // import x from '../../../mining/x.jpg';
+    // let img = ;
+    import { onMount } from "svelte"
+      // d3.csv(' http://127.0.0.1:8081/test.csv').then(function(data) {
+      //   console.log(data[0])})
+    
+      let files;
+      $: if (files) {
+        console.log(files);
+        for (const file of files) {
+          console.log(`${file.name}: ${file.size} bytes`);
+        }
+      }
 
 </script>
 <body>
@@ -95,9 +158,7 @@
         <input type="radio" class="file" on:click={fileRadioClicked} name="input-choice">
         <span class="text"> Text </span>
         <input type="radio" on:click={textRadioClicked}  name="input-choice"><br><br>
-    <!-- </form> -->
     {#if textVisible}
-    <!-- <form> -->
         <div>
             <span class="keyword"> Key word: </span>
             <input type="text" bind:value={keyword} id="inputkeyword"><br><br>
@@ -112,7 +173,7 @@
         <div>
             <span class="keyword"> Key word: </span>
             <input type="text" bind:value={keyword} id="inputkeyword2"><br><br>
-            <span class="data"> Data(extension ie. '.png'): </span><span></span>
+            <span class="data"> Data(extension ie. '.png'): </span>
             <input type="text" bind:value={fileExtension} id="inputFileextension"><br><br>
             <button on:click={postMine}>More input</button>
         </div>
@@ -120,16 +181,41 @@
         <br><br><button on:click={make_archiver_ready} on:click={postMine}>Submit</button><br><br><br>
     </form>
 
-    <input bind:files id="many" multiple type="file" class="files"/>
+    <Folder name="Home" files={root} expanded/>
+
+    <input type='file' bind:files>
+    
+    {#if files}
+        <h2>Selected files:</h2>
+        {#each Array.from(files) as file, i}
+            <p>{file.name} {file.size} bytes</p>
+                {#await file.text() then text}
+                    <p>Inside text: {text}</p>
+                {/await}
+            {/each}
+        <p>files length: {files.length}</p>
+    {/if}
+
+    <!-- {#each Array.from(files) as file, i}
+  <p>{file.name} {file.size} bytes</p>
+  {#await file.text() then text}
+    <p>e: {text} i: {i}</p>
+  {/await}
+{/each} -->
+
+    <!-- <input bind:files id="many" multiple type="file" class="files"/>
 
     {#if files}
         <h2 class="selected">Selected files:</h2>
         {#each Array.from(files) as file}
             <p class="file-name">{file.name} ({file.size} bytes) </p>
         {/each}
-    {/if}
+    {/if} -->
 
+    <br><br>
 
+    <!-- <img src={x} alt="chosenImage" class="image"> -->
+    
 </body>
 <style>
 body {
@@ -217,7 +303,7 @@ input[type=text]:focus {
     color: white;
 }
 
-.selected{
+/* .selected{
     color: white;
 }
 
@@ -227,13 +313,19 @@ input[type=text]:focus {
 
 .files{
     color: white;
-}
+} */
 
 form {
     display: inline-block;
 }
 
+/* .image{
+    width: 200px;
+    height: 200px;
+    border-radius:50%;
+} */
+
 :global(body) {
-    background-color: black;
+    background-color: lightblue;
 }
 </style>
