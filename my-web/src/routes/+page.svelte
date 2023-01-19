@@ -2,36 +2,32 @@
     import axios from 'axios';
     import Folder from './Folder.svelte';
 
-    // function importImg() {
-        // import x from '../../../mining/'+ + '.jpg'
-    // }
-    
     let textVisible = false;
     let fileVissible = false;
-    
+
     function textRadioClicked(event) {
         textVisible = true;
         fileVissible = false;
         event.stopPropagation();
     }
-    
+
     function fileRadioClicked(event) {
         fileVissible = true;
         textVisible = false;
         event.stopPropagation();
     }
-    
+
     function clearTextInputs() {
         document.getElementById("inputkeyword").value = "";
         document.getElementById("inputprefix").value = "";
         document.getElementById("inputdata").value = "";
     }
-    
+
     function clearFileInputs() {
         document.getElementById("inputkeyword2").value = "";
         document.getElementById("inputFileextension").value = "";
     }
-    
+
     let username = '';
     let keyword = '';
     let prefix = '';
@@ -58,15 +54,33 @@
                 input_4: archiver_ready,
             };
         }
+        
+        try{
+        let reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
 
-        const reply = axios.post('http://localhost:5557' + "/mine", null, {params}).then((res)=>{res}).catch((e)=>{console.error(e)})
+        console.log("data: " + reply.data)
+            let get_data = "";
+            let json;
+            while(get_data == "") {
+                get_data = axios.get('http://localhost:5557' + "/send_data", {
+                    params: {
+                        key_word_hash: reply.data
+                    }
+                })
+                json = JSON.stringify(get_data)
+            }
+            console.log("Json: " + json)
+    } catch (e) {
+        error = e;
+    }
+
     }
 
     const addVendorTest = async (event) => {
         const formData = new FormData(event.target)
     
         // [Use formData]
-        // console.log([...formData]);
+        console.log([...formData]);
 
         event.target.reset();
     }
@@ -75,8 +89,6 @@
         archiver_ready = "true";
     }
     
-    // let files;
-
     $: if (files) {
         // Note that `files` is of type `FileList`, not an Array:
         // https://developer.mozilla.org/en-US/docs/Web/API/FileList
@@ -86,7 +98,6 @@
             console.log(`${file.name}: ${file.size} bytes`);
         }
     }
-    let beans = '';
 
     let root = [
 		{
@@ -134,6 +145,7 @@
     // import x from '../../../mining/x.jpg';
     // let img = ;
     import { onMount } from "svelte"
+	import { select_option } from 'svelte/internal';
       // d3.csv(' http://127.0.0.1:8081/test.csv').then(function(data) {
       //   console.log(data[0])})
     

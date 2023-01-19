@@ -352,6 +352,7 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     return ready;
 }
 
+
 int main()
 {
     httplib::Server server;
@@ -361,57 +362,62 @@ int main()
         std::cout << "server has an error..." << std::endl;
         return -1;
     }
+    struct for_archiving writing_file;
 
-    server.Post("/mine", [&](const httplib::Request &req, httplib::Response &res)
-                {
+    server.Post("/mine", [&](const httplib::Request &req, httplib::Response &res) {
         res.set_header("Access-Control-Allow-Origin", "*");
         std::string user = req.get_param_value("input_1");
-        std::string key_word;
+        std::string key_word = req.get_param_value("input_2");
+        writing_file.key_word_hash = generateHash(key_word);
+        // std::string key_word;
         std::string target;
         std::string data;
         std::string archive_ready;
-        struct for_archiving writing_file;
-       if(req.has_param("input_5")) {
-          key_word = req.get_param_value("input_2");
-          target = req.get_param_value("input_3");
-          data = req.get_param_value("input_4");
-          writing_file = mining(data, target, user, key_word, 0);
-          archive_ready = req.get_param_value("input_5");
-          if(archive_ready == "true") {
-            write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
-            archiver(writing_file.key_word_hash, writing_file.target);
-            // std::filesystem::remove_all(writing_file.key_word_hash);
-          }
+        if(req.has_param("input_5")) {
+            target = req.get_param_value("input_3");
+            data = req.get_param_value("input_4");
+            archive_ready = req.get_param_value("input_5");
+            std::cout << "archive outside: " << archive_ready << std::endl;
+            std::thread([&, archive_ready]() {
+            writing_file = mining(data, target, user, writing_file.key_word_hash, 0);
+            if(archive_ready == "true"){
+                write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
+                archiver(writing_file.key_word_hash, writing_file.target);
+                // std::filesystem::remove_all(writing_file.key_word_hash);
+            }}).detach();
        } else {
-            key_word = req.get_param_value("input_2");
             data= req.get_param_value("input_3");
-          writing_file = mining(data, "", user, key_word, 1);
             archive_ready = req.get_param_value("input_4");
-          if(archive_ready == "true"){
-            write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
-            archiver(writing_file.key_word_hash, writing_file.target);
-            // std::filesystem::remove_all(writing_file.key_word_hash);
-          }
+            std::thread([&, archive_ready]() { 
+            writing_file = mining(data, "", user, writing_file.key_word_hash, 1);
+            if(archive_ready == "true"){
+                std::cout << "archive ready: " << archive_ready << std::endl;
+                write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
+                archiver(writing_file.key_word_hash, writing_file.target);
+                // std::filesystem::remove_all(writing_file.key_word_hash);
+            }}).detach();
        }
 
-    nlohmann::json data_send;
-    data_send[writing_file.key_word_hash] = writing_file.key_word_hash;
-    for (const auto &entry : std::filesystem::directory_iterator(writing_file.key_word_hash))
-    {
-        std::string file_path = entry.path();
-        std::string file_name = file_path.substr(file_path.find_last_of('/'), file_name.length());
-        std::vector<uint8_t> fileContents;
+       res.set_content(writing_file.key_word_hash, "text/plain");
+       res.status = 200; });
 
-        fileContents = readBinary(file_path);
-
-        data_send.push_back({file_name, fileContents});
-    }
-
-        std::string json_str = data_send.dump();
-        res.set_content(json_str, "application/json");
-
-        // res.set_content("Success", "text/plain");
-        res.status = 200; });
+    server.Get("/send_data", [&](const httplib::Request &req, httplib::Response &res){
+        std::string key_word_hash = req.get_param_value("key_word_hash");        
+        nlohmann::json data_send;
+            std::cout <<"key_word_hash: "<< key_word_hash << std::endl;
+        data_send[key_word_hash] = key_word_hash;
+        for (const auto &entry : std::filesystem::directory_iterator(key_word_hash))
+        {
+            std::string file_path = entry.path();
+            std::string file_name = file_path.substr(file_path.find_last_of('/'), file_name.length());
+            std::vector<uint8_t> fileContents;
+            fileContents = readBinary(file_path);
+            data_send.push_back({file_name, fileContents});
+        }
+            // std::filesystem::remove_all(writing_file.key_word_hash);
+            std::string json_str = data_send.dump();
+            res.set_content(json_str, "application/json"); 
+    });
 
     server.Options("/(.*)", [&](const httplib::Request & /*req*/, httplib::Response &res)
                    {
