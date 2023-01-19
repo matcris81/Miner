@@ -195,14 +195,14 @@ std::vector<std::string> miner(std::string target, std::string hash)
     return {digeststring, messageString};
 }
 
-struct for_archiving mining(std::string data, std::string target, std::string user_hash, std::string key_word, int file_or_txt)
+struct for_archiving mining(std::string data, std::string target, std::string user_hash, std::string key_word, std::string key_word_hash , int file_or_txt)
 {
-    std::string data_hash, spvlistHash, pref_ex, longkeyWordspvlist, key_word_hash;
+    std::string data_hash, spvlistHash, pref_ex, longkeyWordspvlist;
     std::string emptynonce = "0000000000000000";
     int weight = 0;
 
     user_hash = generateHash(user_hash);
-    key_word_hash = generateHash(key_word);
+    // key_word_hash = generateHash(key_word);
 
     // Initialize variables
 
@@ -333,13 +333,11 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     std::vector<std::string> datas;
     for (const auto &entry : std::filesystem::directory_iterator(key_word_hash))
     {
+        // std::cout << "Path: "<< entry.path() << std::endl;
         datas.push_back(entry.path());
     }
 
     std::string keyWordConst = key_word_hash + ".tar";
-    // write_archive(keyWordConst.c_str() , datas);
-    // std::filesystem::remove_all(key_word_hash);
-    // archiver(key_word_hash, target);
 
     std::string key_hash_target[] = {key_word_hash, target, keyWordConst};
 
@@ -368,6 +366,7 @@ int main()
         res.set_header("Access-Control-Allow-Origin", "*");
         std::string user = req.get_param_value("input_1");
         std::string key_word = req.get_param_value("input_2");
+        std::cout << "key word: " << key_word << std::endl;
         writing_file.key_word_hash = generateHash(key_word);
         // std::string key_word;
         std::string target;
@@ -377,9 +376,8 @@ int main()
             target = req.get_param_value("input_3");
             data = req.get_param_value("input_4");
             archive_ready = req.get_param_value("input_5");
-            std::cout << "archive outside: " << archive_ready << std::endl;
             std::thread([&, archive_ready]() {
-            writing_file = mining(data, target, user, writing_file.key_word_hash, 0);
+            writing_file = mining(data, target, user, key_word, writing_file.key_word_hash, 0);
             if(archive_ready == "true"){
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 archiver(writing_file.key_word_hash, writing_file.target);
@@ -389,9 +387,8 @@ int main()
             data= req.get_param_value("input_3");
             archive_ready = req.get_param_value("input_4");
             std::thread([&, archive_ready]() { 
-            writing_file = mining(data, "", user, writing_file.key_word_hash, 1);
+            writing_file = mining(data, "", user, key_word ,writing_file.key_word_hash, 1);
             if(archive_ready == "true"){
-                std::cout << "archive ready: " << archive_ready << std::endl;
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 archiver(writing_file.key_word_hash, writing_file.target);
                 // std::filesystem::remove_all(writing_file.key_word_hash);
@@ -404,14 +401,19 @@ int main()
     server.Get("/send_data", [&](const httplib::Request &req, httplib::Response &res){
         std::string key_word_hash = req.get_param_value("key_word_hash");        
         nlohmann::json data_send;
-            std::cout <<"key_word_hash: "<< key_word_hash << std::endl;
         data_send[key_word_hash] = key_word_hash;
         for (const auto &entry : std::filesystem::directory_iterator(key_word_hash))
         {
             std::string file_path = entry.path();
             std::string file_name = file_path.substr(file_path.find_last_of('/'), file_name.length());
             std::vector<uint8_t> fileContents;
+            
+            // for(auto i: fileContents) {
+            // }
             fileContents = readBinary(file_path);
+            // std::cout <<"file_path: "<< file_path << std::endl;
+            // std::cout <<"file_name: "<< file_name << std::endl;
+            // std::cout <<"fileContents size: "<< fileContents.size() << std::endl;
             data_send.push_back({file_name, fileContents});
         }
             // std::filesystem::remove_all(writing_file.key_word_hash);

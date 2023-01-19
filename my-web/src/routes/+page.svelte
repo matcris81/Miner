@@ -35,6 +35,8 @@
     let fileExtension ='';
     let archiver_ready =  'false';
 
+    let reply;
+
     const postMine = async() =>{
         let params = {}
 
@@ -54,25 +56,26 @@
                 input_4: archiver_ready,
             };
         }
-        
         try{
-        let reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
+            reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
 
-        console.log("data: " + reply.data)
-            let get_data = "";
-            let json;
-            while(get_data == "") {
-                get_data = axios.get('http://localhost:5557' + "/send_data", {
-                    params: {
-                        key_word_hash: reply.data
-                    }
-                })
-                json = JSON.stringify(get_data)
-            }
-            console.log("Json: " + json)
-    } catch (e) {
-        error = e;
-    }
+            // console.log("data: " + reply.data)
+                let get_data = "";
+                let json;
+                while(get_data == "") {
+                    get_data = axios.get('http://localhost:5557' + "/send_data", {
+                        params: {
+                            key_word_hash: reply.data
+                        }
+                    })
+                    json = JSON.stringify(get_data)
+                    console.log("Json: " + json)
+                }
+        } catch (e) {
+            error = e;
+        }
+
+        console.log("Data:" + reply.data);
 
     }
 
