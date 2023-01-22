@@ -1,6 +1,7 @@
 <script>
     import axios from 'axios';
     import Folder from './Folder.svelte';
+    import {Buffer} from 'buffer';
 
     let textVisible = false;
     let fileVissible = false;
@@ -56,28 +57,38 @@
                 input_4: archiver_ready,
             };
         }
+        let json;
         try{
             reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
 
             // console.log("data: " + reply.data)
-                let get_data = "";
-                let json;
-                while(get_data == "") {
-                    get_data = axios.get('http://localhost:5557' + "/send_data", {
-                        params: {
-                            key_word_hash: reply.data
-                        }
-                    })
-                    json = JSON.stringify(get_data)
-                    console.log("Json: " + json)
-                }
-        } catch (e) {
-            error = e;
+            let get_data = "";
+            while(get_data == "") {
+                get_data = await axios.get('http://localhost:5557' + "/send_data", {
+                    params: {
+                        key_word_hash: reply.data
+                    }
+                })
+                json = JSON.stringify(get_data.data)
+            }
+            } catch (e) {
+                error = e;
+            }
+            // console.log(json)
+            let json_length = Object.keys(json).length
+            json = json.replace(/"/g, '')
+            json = json.replace(/}/g, '')
+            json = json.substring(1, json_length)
+            json = json.split("]")
+            const json_map = new Map()
+            for(let i = 0; i < json.length - 1; i++) {
+                let json_pairs = json[i].split(":")
+                json_pairs[0] = json_pairs[0].replace(",", '')
+                json_pairs[1] = json_pairs[1].replace("[", '')
+                json_map.set(json_pairs[0], json_pairs[1])
+            }
+            change_root(json_map)
         }
-
-        console.log("Data:" + reply.data);
-
-    }
 
     const addVendorTest = async (event) => {
         const formData = new FormData(event.target)
@@ -104,35 +115,90 @@
 
     let root = [
 		{
-			name: 'Important work stuff',
+			name: 'Nothing to display',
 			files: [
-				{ name: 'quarterly-results.xlsx' }
+				{ 
+                    name: 'nothing to display',
+                    files: [
+                        {name: 'nothing'}
+                    ]    
+                },
+                { 
+                    name: 'nothing to display',
+                    files: [
+                        {name: 'nothing'}
+                    ]     
+                },
+				{ 
+                    name: 'nothing to display',
+                    files: [
+                        {name: 'nothing'}
+                    ]    
+                },
+                { 
+                    name: 'nothing to display',
+                    files: [
+                        {name: 'nothing'}
+                    ]    
+                },
+				{ 
+                    name: 'nothing to display',
+                    files: [
+                        {name: 'nothing'}
+                    ]    
+                }
 			]
 		},
-		{
-			name: 'Animal GIFs',
-			files: [
-				{
-					name: 'Dogs',
-					files: [
-						{ name: 'treadmill.gif' },
-						{ name: 'rope-jumping.gif' }
-					]
-				},
-				{
-					name: 'Goats',
-					files: [
-						{ name: 'parkour.gif' },
-						{ name: 'rampage.gif' }
-					]
-				},
-				{ name: 'cat-roomba.gif' },
-				{ name: 'duck-shuffle.gif' },
-				{ name: 'monkey-on-a-pig.gif' }
-			]
-		},
-		{ name: 'TODO.md' }
 	];
+
+    let data_hash
+    function change_root(map) {
+        let int_array
+        let i = 0
+        for (let [key, value] of map.entries()) {
+            let seperate_bytes = value.split(",")
+            int_array = seperate_bytes.map(x => parseInt(x));
+            // const ints = new Array(int_array);
+            let bytes = new Buffer(int_array)
+            let file_contents
+            // console.log(hex)
+            file_contents = bytes.toString('hex')
+            // console.log("Key: " + key)
+            
+            if(file_contents.length == 212) {
+                prefix = key.substring(0,4)
+                //checking for jpg, png, jpeg
+                if(prefix == 'f814' || prefix == '8f8c' || prefix == '41e5') {
+                    data_hash = file_contents.substring(132, 196)
+                }
+            }
+            for (let [key, value] of map.entries()) {
+                // console.log(key === data_hash)
+                // console.log("Data hash: " + data_hash)
+                if(key === data_hash){
+                    let seperate_bytes = value.split(",")
+                    int_array = seperate_bytes.map(x => parseInt(x));
+                    let bytear_array = new Uint8Array(int_array)
+                    console.log("Arraylength: "+int_array.length)
+                    console.log(bytear_array)
+                    let bytes = new Buffer(bytear_array)
+                    let base64String = bytes.toString('base64');
+                    document.getElementById("image").src = "data:image/png;base64," + base64String;
+                }
+            }
+            if(key == "file name") {
+                root[0].name = value
+            } else {
+                
+                root[0].files[i].name = key
+                root[0].files[i].files[0].name = file_contents;
+            }
+            
+            i++
+        }
+
+        return root
+    }
 
     let selectedFiles;
     function handleFileSelection() {
@@ -148,7 +214,7 @@
     // import x from '../../../mining/x.jpg';
     // let img = ;
     import { onMount } from "svelte"
-	import { select_option } from 'svelte/internal';
+	import { exclude_internal_props, select_option } from 'svelte/internal';
       // d3.csv(' http://127.0.0.1:8081/test.csv').then(function(data) {
       //   console.log(data[0])})
     
@@ -162,6 +228,7 @@
 
 </script>
 <body>
+    <div class="send-input">
     <h1>
         <span class="twenty">21</span>
         <span class="e8">e8</span>
@@ -177,9 +244,9 @@
         <div>
             <span class="keyword"> Key word: </span>
             <input type="text" bind:value={keyword} id="inputkeyword"><br><br>
-            <span class="prefix"> Prefix: </span><span>/////</span>
+            <span class="prefix"> Prefix: </span>
             <input type="text" bind:value={prefix} id="inputprefix"><br><br>
-            <span class="data"> Data: </span><span>///////</span>
+            <span class="data"> Data: </span>
             <input type="text" bind:value={data} id="inputdata"><br><br>
             <button on:click={postMine}>More input</button>
         </div>
@@ -188,50 +255,21 @@
         <div>
             <span class="keyword"> Key word: </span>
             <input type="text" bind:value={keyword} id="inputkeyword2"><br><br>
-            <span class="data"> Data(extension ie. '.png'): </span>
+            <span class="data"> File name: </span>
             <input type="text" bind:value={fileExtension} id="inputFileextension"><br><br>
             <button on:click={postMine}>More input</button>
         </div>
     {/if}
-        <br><br><button on:click={make_archiver_ready} on:click={postMine}>Submit</button><br><br><br>
+        <br><br><button on:click={make_archiver_ready} on:click={postMine} on:click{change_root}>Submit</button><br><br><br>
     </form>
+    </div>
 
-    <Folder name="Home" files={root} expanded/>
-
-    <input type='file' bind:files>
-    
-    {#if files}
-        <h2>Selected files:</h2>
-        {#each Array.from(files) as file, i}
-            <p>{file.name} {file.size} bytes</p>
-                {#await file.text() then text}
-                    <p>Inside text: {text}</p>
-                {/await}
-            {/each}
-        <p>files length: {files.length}</p>
-    {/if}
-
-    <!-- {#each Array.from(files) as file, i}
-  <p>{file.name} {file.size} bytes</p>
-  {#await file.text() then text}
-    <p>e: {text} i: {i}</p>
-  {/await}
-{/each} -->
-
-    <!-- <input bind:files id="many" multiple type="file" class="files"/>
-
-    {#if files}
-        <h2 class="selected">Selected files:</h2>
-        {#each Array.from(files) as file}
-            <p class="file-name">{file.name} ({file.size} bytes) </p>
-        {/each}
-    {/if} -->
-
-    <br><br>
-
-    <!-- <img src={x} alt="chosenImage" class="image"> -->
     
 </body>
+<div class="explorer" svelte:style="z-index: 1;">
+    <Folder name="Click for archived file" files={root} expanded/>
+    <img id="image" src="" alt="Pic" width="300" height="450"/>
+</div>
 <style>
 body {
     text-align: center;
@@ -239,6 +277,16 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+}
+
+.send-input{
+    margin-right: 500px;
+    margin-top: -100px;
+}
+
+.explorer {
+    padding-left: 900px;
+    margin-top: -200px;
 }
 
 h1 {
@@ -318,27 +366,9 @@ input[type=text]:focus {
     color: white;
 }
 
-/* .selected{
-    color: white;
-}
-
-.file-name{
-    color: white;
-}
-
-.files{
-    color: white;
-} */
-
 form {
     display: inline-block;
 }
-
-/* .image{
-    width: 200px;
-    height: 200px;
-    border-radius:50%;
-} */
 
 :global(body) {
     background-color: lightblue;

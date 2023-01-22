@@ -20,6 +20,8 @@
 #include "../archiving/archiver.cpp"
 #include "../cpp-httplib/httplib.h"
 #include "json.hpp"
+#include <chrono>
+#include <thread>
 
 const std::regex hex_pattern("[a-f0-9]*");
 
@@ -202,36 +204,10 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     int weight = 0;
 
     user_hash = generateHash(user_hash);
-    // key_word_hash = generateHash(key_word);
-
-    // Initialize variables
-
-    // Enter username
-    // std::cout << "Username: " << std::endl;
-    // std::getline(std::cin, user_hash);
-    // user_hash = generateHash(user_hash);
-
-    // // Enter key word
-    // std::cout << "Key word: " << std::endl;
-    // std::getline(std::cin, key_word);
-    // std::string outputKeyword = key_word;
-    // key_word = generateHash(key_word);
 
     std::filesystem::create_directories(key_word_hash);
     writeTextToFile(key_word_hash, key_word, key_word_hash);
 
-    // std::cout << "Provide a prefix: (enter to exit or provide an .extension, e.g \".png\")" << std::endl;
-    // std::getline(std::cin, target);
-    // if(target == "")
-    //     break;
-
-    // std::cout << "Enter data or filename without extension: (enter to exit)" << std::endl;
-    // std::getline(std::cin, data);
-    // if (data == "")
-    //     break;
-
-    // substring the extension
-    // if (data.find(".") == std::string::npos) {
     unsigned char digest[32];
     unsigned char shaInput[256010];
     std::vector<uint8_t> buffer;
@@ -239,8 +215,8 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     {
         std::string file = data.substr(0, data.find("."));
         std::string extension = data.substr(data.find("."), data.length());
-        size_t endOfTarget = file.length();
-        target = file.substr(0, endOfTarget);
+        size_t endOfTarget = data.length();
+        target = extension.substr(1, endOfTarget);
         target = generateHash(target).substr(0, 4);
         buffer = readBinary(data);
         std::vector<std::string> allDigests;
@@ -331,9 +307,7 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     writeToFile(digestMsg[0], hexToBytes(spvlistHash), key_word_hash);
 
     std::vector<std::string> datas;
-    for (const auto &entry : std::filesystem::directory_iterator(key_word_hash))
-    {
-        // std::cout << "Path: "<< entry.path() << std::endl;
+    for (const auto &entry : std::filesystem::directory_iterator(key_word_hash)) {
         datas.push_back(entry.path());
     }
 
@@ -366,9 +340,7 @@ int main()
         res.set_header("Access-Control-Allow-Origin", "*");
         std::string user = req.get_param_value("input_1");
         std::string key_word = req.get_param_value("input_2");
-        std::cout << "key word: " << key_word << std::endl;
         writing_file.key_word_hash = generateHash(key_word);
-        // std::string key_word;
         std::string target;
         std::string data;
         std::string archive_ready;
@@ -376,22 +348,20 @@ int main()
             target = req.get_param_value("input_3");
             data = req.get_param_value("input_4");
             archive_ready = req.get_param_value("input_5");
-            std::thread([&, archive_ready]() {
+            std::thread([&, archive_ready, data, target, user, key_word]() {
             writing_file = mining(data, target, user, key_word, writing_file.key_word_hash, 0);
             if(archive_ready == "true"){
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 archiver(writing_file.key_word_hash, writing_file.target);
-                // std::filesystem::remove_all(writing_file.key_word_hash);
             }}).detach();
        } else {
             data= req.get_param_value("input_3");
             archive_ready = req.get_param_value("input_4");
-            std::thread([&, archive_ready]() { 
+            std::thread([&, archive_ready, data, target, user, key_word]() {
             writing_file = mining(data, "", user, key_word ,writing_file.key_word_hash, 1);
             if(archive_ready == "true"){
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 archiver(writing_file.key_word_hash, writing_file.target);
-                // std::filesystem::remove_all(writing_file.key_word_hash);
             }}).detach();
        }
 
@@ -399,26 +369,25 @@ int main()
        res.status = 200; });
 
     server.Get("/send_data", [&](const httplib::Request &req, httplib::Response &res){
-        std::string key_word_hash = req.get_param_value("key_word_hash");        
+        res.set_header("Access-Control-Allow-Origin", "*");
+        std::string key_word_hash = req.get_param_value("key_word_hash");
         nlohmann::json data_send;
-        data_send[key_word_hash] = key_word_hash;
+        data_send["file name"] = key_word_hash + "]";
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+
         for (const auto &entry : std::filesystem::directory_iterator(key_word_hash))
         {
             std::string file_path = entry.path();
-            std::string file_name = file_path.substr(file_path.find_last_of('/'), file_name.length());
+            size_t last_slash = file_path.find_last_of('/') + 1;
+            std::string file_name = file_path.substr(last_slash, file_path.length());
             std::vector<uint8_t> fileContents;
-            
-            // for(auto i: fileContents) {
-            // }
             fileContents = readBinary(file_path);
-            // std::cout <<"file_path: "<< file_path << std::endl;
-            // std::cout <<"file_name: "<< file_name << std::endl;
-            // std::cout <<"fileContents size: "<< fileContents.size() << std::endl;
             data_send.push_back({file_name, fileContents});
         }
-            // std::filesystem::remove_all(writing_file.key_word_hash);
-            std::string json_str = data_send.dump();
-            res.set_content(json_str, "application/json"); 
+        
+        std::filesystem::remove_all(writing_file.key_word_hash);
+        std::string json_str = data_send.dump();
+        res.set_content(json_str, "text/plain"); 
     });
 
     server.Options("/(.*)", [&](const httplib::Request & /*req*/, httplib::Response &res)
