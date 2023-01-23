@@ -40,6 +40,7 @@
 
     const postMine = async() =>{
         let params = {}
+        console.log(archiver_ready)
 
         if(textVisible == true) {
             params = {
@@ -58,10 +59,9 @@
             };
         }
         let json;
-        try{
+        try {
             reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
 
-            // console.log("data: " + reply.data)
             let get_data = "";
             while(get_data == "") {
                 get_data = await axios.get('http://localhost:5557' + "/send_data", {
@@ -87,8 +87,13 @@
                 json_pairs[1] = json_pairs[1].replace("[", '')
                 json_map.set(json_pairs[0], json_pairs[1])
             }
+            
             change_root(json_map)
-        }
+    }
+
+    function deleteFiles() {
+        root[0].files.splice(0, root[0].files.length);
+    }
 
     const addVendorTest = async (event) => {
         const formData = new FormData(event.target)
@@ -100,7 +105,11 @@
     }
 
     function make_archiver_ready() {
-        archiver_ready = "true";
+        archiver_ready = 'true';
+    }
+
+    function make_archiver_not_ready() {
+        archiver_ready = 'false'
     }
     
     $: if (files) {
@@ -122,48 +131,26 @@
                     files: [
                         {name: 'nothing'}
                     ]    
-                },
-                { 
-                    name: 'nothing to display',
-                    files: [
-                        {name: 'nothing'}
-                    ]     
-                },
-				{ 
-                    name: 'nothing to display',
-                    files: [
-                        {name: 'nothing'}
-                    ]    
-                },
-                { 
-                    name: 'nothing to display',
-                    files: [
-                        {name: 'nothing'}
-                    ]    
-                },
-				{ 
-                    name: 'nothing to display',
-                    files: [
-                        {name: 'nothing'}
-                    ]    
                 }
 			]
 		},
 	];
+    
+    function addFile(){
+        root[0].files.push({name: 'new file', files: [{name:'nothing'}]});
+    }
 
     let data_hash
     function change_root(map) {
         let int_array
         let i = 0
+        console.log("Keys: " + map.size)
         for (let [key, value] of map.entries()) {
             let seperate_bytes = value.split(",")
             int_array = seperate_bytes.map(x => parseInt(x));
-            // const ints = new Array(int_array);
             let bytes = new Buffer(int_array)
             let file_contents
-            // console.log(hex)
             file_contents = bytes.toString('hex')
-            // console.log("Key: " + key)
             
             if(file_contents.length == 212) {
                 prefix = key.substring(0,4)
@@ -173,51 +160,33 @@
                 }
             }
             for (let [key, value] of map.entries()) {
-                // console.log(key === data_hash)
-                // console.log("Data hash: " + data_hash)
                 if(key === data_hash){
                     let seperate_bytes = value.split(",")
-                    int_array = seperate_bytes.map(x => parseInt(x));
-                    let bytear_array = new Uint8Array(int_array)
-                    console.log("Arraylength: "+int_array.length)
-                    console.log(bytear_array)
+                    int_array = seperate_bytes.map(x => parseInt(x))
                     let bytes = new Buffer(bytear_array)
-                    let base64String = bytes.toString('base64');
-                    document.getElementById("image").src = "data:image/png;base64," + base64String;
+                    let base64String = bytes.toString('base64')
+                    if(prefix == 'f814') {
+                        document.getElementById("image").src = "data:image/jpg;base64," + base64String
+                    } else if (prefix == '8f8c') {
+                        document.getElementById("image").src = "data:image/png;base64," + base64String
+                    } else if(prefix == '41e5') {
+                        document.getElementById("image").src = "data:image/jpeg;base64," + base64String
+                    }
                 }
             }
             if(key == "file name") {
                 root[0].name = value
             } else {
-                
+                addFile()
                 root[0].files[i].name = key
                 root[0].files[i].files[0].name = file_contents;
             }
-            
             i++
         }
-
+ 
         return root
     }
 
-    let selectedFiles;
-    function handleFileSelection() {
-        let file = selectedFiles[0];
-        let reader = new FileReader();
-        reader.onload = (e) => {
-            let contents = e.target.result;
-            console.log(contents);
-        };
-        reader.readAsText(file);
-    }
-
-    // import x from '../../../mining/x.jpg';
-    // let img = ;
-    import { onMount } from "svelte"
-	import { exclude_internal_props, select_option } from 'svelte/internal';
-      // d3.csv(' http://127.0.0.1:8081/test.csv').then(function(data) {
-      //   console.log(data[0])})
-    
       let files;
       $: if (files) {
         console.log(files);
@@ -228,66 +197,50 @@
 
 </script>
 <body>
-    <div class="send-input">
-    <h1>
-        <span class="twenty">21</span>
-        <span class="e8">e8</span>
-    </h1>
-    <form on:submit|preventDefault={addVendorTest}>
-        <span class="username"> Username: </span>
-        <input type="text" class="username-input" bind:value={username}><br><br>
-        <span class="file"> File </span>
-        <input type="radio" class="file" on:click={fileRadioClicked} name="input-choice">
-        <span class="text"> Text </span>
-        <input type="radio" on:click={textRadioClicked}  name="input-choice"><br><br>
-    {#if textVisible}
-        <div>
-            <span class="keyword"> Key word: </span>
-            <input type="text" bind:value={keyword} id="inputkeyword"><br><br>
-            <span class="prefix"> Prefix: </span>
-            <input type="text" bind:value={prefix} id="inputprefix"><br><br>
-            <span class="data"> Data: </span>
-            <input type="text" bind:value={data} id="inputdata"><br><br>
-            <button on:click={postMine}>More input</button>
+        <h1>
+            <span class="twenty">21</span>
+            <span class="e8">e8</span>
+        </h1>
+        <div class="form">
+            <form on:submit|preventDefault={addVendorTest} class="beginning-input">
+                <span class="username"> Username: </span>
+                <input type="text" class="username-input" bind:value={username}><br><br>
+                <span class="file"> File </span>
+                <input type="radio" class="file" on:click={fileRadioClicked} on:click={deleteFiles} name="input-choice">
+                <span class="text"> Text </span>
+                <input type="radio" on:click={textRadioClicked}  name="input-choice"><br><br>
+            {#if textVisible}
+                <div>
+                    <span class="keyword"> Key word: </span>
+                    <input type="text" bind:value={keyword} id="inputkeyword"><br><br>
+                    <span class="prefix"> Prefix: </span>
+                    <input type="text" bind:value={prefix} id="inputprefix"><br><br>
+                    <span class="data"> Data: </span>
+                    <input type="text" bind:value={data} id="inputdata"><br><br>
+                    <button on:click={postMine} on:click={make_archiver_not_ready}>More input</button>
+                </div>
+            {/if}
+            {#if fileVissible}
+                <div>
+                    <span class="keyword"> Key word: </span>
+                    <input type="text" bind:value={keyword} id="inputkeyword2"><br><br>
+                    <span class="data"> File name: </span>
+                    <input type="text" bind:value={fileExtension} id="inputFileextension"><br><br>
+                    <button on:click={postMine} on:click={make_archiver_not_ready}>More input</button>
+                </div>
+            {/if}
+                <br><br><button on:click={make_archiver_ready} on:click={postMine} on:click{change_root}>Submit</button><br><br><br><br><br>
+                <Folder name="Click for archived file" files={root} expanded/>
+                <img id="image" src="" alt="Pic" width="300" height="450"/>
+            </form>
         </div>
-    {/if}
-    {#if fileVissible}
-        <div>
-            <span class="keyword"> Key word: </span>
-            <input type="text" bind:value={keyword} id="inputkeyword2"><br><br>
-            <span class="data"> File name: </span>
-            <input type="text" bind:value={fileExtension} id="inputFileextension"><br><br>
-            <button on:click={postMine}>More input</button>
-        </div>
-    {/if}
-        <br><br><button on:click={make_archiver_ready} on:click={postMine} on:click{change_root}>Submit</button><br><br><br>
-    </form>
-    </div>
-
-    
 </body>
-<div class="explorer" svelte:style="z-index: 1;">
-    <Folder name="Click for archived file" files={root} expanded/>
-    <img id="image" src="" alt="Pic" width="300" height="450"/>
-</div>
 <style>
-body {
+
+.form {
     text-align: center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
 }
 
-.send-input{
-    margin-right: 500px;
-    margin-top: -100px;
-}
-
-.explorer {
-    padding-left: 900px;
-    margin-top: -200px;
-}
 
 h1 {
     text-align: center;
@@ -368,6 +321,7 @@ input[type=text]:focus {
 
 form {
     display: inline-block;
+    text-align: center;
 }
 
 :global(body) {

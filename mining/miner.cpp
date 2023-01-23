@@ -353,6 +353,7 @@ int main()
             if(archive_ready == "true"){
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 archiver(writing_file.key_word_hash, writing_file.target);
+                std::filesystem::remove_all(writing_file.key_word_hash);
             }}).detach();
        } else {
             data= req.get_param_value("input_3");
@@ -362,6 +363,7 @@ int main()
             if(archive_ready == "true"){
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 archiver(writing_file.key_word_hash, writing_file.target);
+                std::filesystem::remove_all(writing_file.key_word_hash);
             }}).detach();
        }
 
@@ -384,8 +386,7 @@ int main()
             fileContents = readBinary(file_path);
             data_send.push_back({file_name, fileContents});
         }
-        
-        std::filesystem::remove_all(writing_file.key_word_hash);
+
         std::string json_str = data_send.dump();
         res.set_content(json_str, "text/plain"); 
     });
