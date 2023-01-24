@@ -34,13 +34,21 @@
     let prefix = '';
     let data = '';
     let fileExtension ='';
-    let archiver_ready =  'false';
+    let archiver_ready =  '';
 
     let reply;
 
-    const postMine = async() =>{
+    const postMine = async function mine (asdf) {
         let params = {}
-        console.log(archiver_ready)
+        if (asdf === "asdf") {
+            archiver_ready = "true"
+        } else if(asdf === undefined){
+            console.log("asdf: " + asdf)
+        }else {
+            archiver_ready = "false"
+        }
+
+        console.log("Archiver: " + archiver_ready)
 
         if(textVisible == true) {
             params = {
@@ -61,7 +69,7 @@
         let json;
         try {
             reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
-
+            
             let get_data = "";
             while(get_data == "") {
                 get_data = await axios.get('http://localhost:5557' + "/send_data", {
@@ -72,7 +80,7 @@
                 json = JSON.stringify(get_data.data)
             }
             } catch (e) {
-                error = e;
+                console.log(e);
             }
             // console.log(json)
             let json_length = Object.keys(json).length
@@ -92,7 +100,7 @@
     }
 
     function deleteFiles() {
-        root[0].files.splice(0, root[0].files.length);
+        root[0].files.length = 0;
     }
 
     const addVendorTest = async (event) => {
@@ -104,14 +112,6 @@
         event.target.reset();
     }
 
-    function make_archiver_ready() {
-        archiver_ready = 'true';
-    }
-
-    function make_archiver_not_ready() {
-        archiver_ready = 'false'
-    }
-    
     $: if (files) {
         // Note that `files` is of type `FileList`, not an Array:
         // https://developer.mozilla.org/en-US/docs/Web/API/FileList
@@ -163,7 +163,7 @@
                 if(key === data_hash){
                     let seperate_bytes = value.split(",")
                     int_array = seperate_bytes.map(x => parseInt(x))
-                    let bytes = new Buffer(bytear_array)
+                    let bytes = new Buffer(int_array)
                     let base64String = bytes.toString('base64')
                     if(prefix == 'f814') {
                         document.getElementById("image").src = "data:image/jpg;base64," + base64String
@@ -183,7 +183,7 @@
             }
             i++
         }
- 
+
         return root
     }
 
@@ -217,7 +217,7 @@
                     <input type="text" bind:value={prefix} id="inputprefix"><br><br>
                     <span class="data"> Data: </span>
                     <input type="text" bind:value={data} id="inputdata"><br><br>
-                    <button on:click={postMine} on:click={make_archiver_not_ready}>More input</button>
+                    <button on:click={postMine}>More input</button>
                 </div>
             {/if}
             {#if fileVissible}
@@ -226,10 +226,11 @@
                     <input type="text" bind:value={keyword} id="inputkeyword2"><br><br>
                     <span class="data"> File name: </span>
                     <input type="text" bind:value={fileExtension} id="inputFileextension"><br><br>
-                    <button on:click={postMine} on:click={make_archiver_not_ready}>More input</button>
+                    <button on:click={postMine}>More input</button>
                 </div>
             {/if}
-                <br><br><button on:click={make_archiver_ready} on:click={postMine} on:click{change_root}>Submit</button><br><br><br><br><br>
+                <br><br><button on:click={()=> postMine('asdf')}>Submit</button><br><br><br><br><br>
+                <button on:click={deleteFiles}>Remove archive</button><br><br><br>
                 <Folder name="Click for archived file" files={root} expanded/>
                 <img id="image" src="" alt="Pic" width="300" height="450"/>
             </form>

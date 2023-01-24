@@ -240,16 +240,12 @@ struct for_archiving mining(std::string data, std::string target, std::string us
                 allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
             }
             int amount_of_hashes = allDigests.size();
-            while (allDigests.size() != 1)
-            {
+            while (allDigests.size() != 1) {
                 std::string tmpString;
-                if (amount_of_hashes == 0 && allDigests.size() != 2)
-                {
+                if (amount_of_hashes == 0 && allDigests.size() != 2) {
                     tmpString = allDigests[0] + allDigests[0];
                     amount_of_hashes = allDigests.size();
-                }
-                else
-                {
+                } else {
                     tmpString = allDigests[0] + allDigests[1];
                 }
                 const unsigned char *tmp_sha_input = reinterpret_cast<const unsigned char *>(tmpString.c_str());
@@ -258,16 +254,12 @@ struct for_archiving mining(std::string data, std::string target, std::string us
                 allDigests.erase(allDigests.begin(), allDigests.begin() + 2);
                 amount_of_hashes--;
             }
-        }
-        else
-        {
+        } else {
             std::copy(buffer.begin(), buffer.end(), shaInput);
             sha256(shaInput, buffer.size(), digest);
         }
         data_hash = bytesToHex(std::vector<uint8_t>(digest, digest + 32));
-    }
-    else
-    {
+    } else {
         data_hash = generateHash(data);
     }
 
@@ -275,12 +267,9 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     std::vector<std::string> digestString = miner(target, hash);
     longkeyWordspvlist += digestString[0];
     writeToFile(digestString[0], hexToBytes(digestString[1]), key_word_hash);
-    if (file_or_txt == 1)
-    {
+    if (file_or_txt == 1) {
         writeToFile(data_hash, buffer, key_word_hash);
-    }
-    else
-    {
+    } else {
         writeTextToFile(data_hash, data, key_word_hash);
     }
     weight += pow(16, target.length());
@@ -288,12 +277,9 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     size_t new_pref_len = 0;
 
     // Determine how long the longest prefix must be
-    if (fmod(log2(weight) / log2(16), 1.0) == 0.0)
-    {
+    if (fmod(log2(weight) / log2(16), 1.0) == 0.0) {
         new_pref_len = ceil(log2(weight) / log2(16)) + 1;
-    }
-    else
-    {
+    } else {
         new_pref_len = ceil(log2(weight) / log2(16));
     }
 
@@ -353,17 +339,17 @@ int main()
             if(archive_ready == "true"){
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 archiver(writing_file.key_word_hash, writing_file.target);
-                std::filesystem::remove_all(writing_file.key_word_hash);
+                // std::filesystem::remove_all(writing_file.key_word_hash);
             }}).detach();
        } else {
-            data= req.get_param_value("input_3");
+            data = req.get_param_value("input_3");
             archive_ready = req.get_param_value("input_4");
             std::thread([&, archive_ready, data, target, user, key_word]() {
             writing_file = mining(data, "", user, key_word ,writing_file.key_word_hash, 1);
             if(archive_ready == "true"){
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 archiver(writing_file.key_word_hash, writing_file.target);
-                std::filesystem::remove_all(writing_file.key_word_hash);
+                // std::filesystem::remove_all(writing_file.key_word_hash);
             }}).detach();
        }
 
