@@ -159,12 +159,13 @@
                     data_hash = file_contents.substring(132, 196)
                 }
             }
+            let base64String;
             for (let [key, value] of map.entries()) {
                 if(key === data_hash){
                     let seperate_bytes = value.split(",")
                     int_array = seperate_bytes.map(x => parseInt(x))
                     let bytes = new Buffer(int_array)
-                    let base64String = bytes.toString('base64')
+                    base64String = bytes.toString('base64')
                     if(prefix == 'f814') {
                         document.getElementById("image").src = "data:image/jpg;base64," + base64String
                     } else if (prefix == '8f8c') {
@@ -174,7 +175,7 @@
                     }
                 }
             }
-            if(key == "file name") {
+            if(key === "file name") {
                 root[0].name = value
             } else {
                 addFile()
