@@ -144,14 +144,13 @@
     function change_root(map) {
         let int_array
         let i = 0
+        let file_contents
         console.log("Keys: " + map.size)
         for (let [key, value] of map.entries()) {
             let seperate_bytes = value.split(",")
             int_array = seperate_bytes.map(x => parseInt(x));
             let bytes = new Buffer(int_array)
-            let file_contents
             file_contents = bytes.toString('hex')
-            
             if(file_contents.length == 212) {
                 prefix = key.substring(0,4)
                 //checking for jpg, png, jpeg

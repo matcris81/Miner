@@ -22,6 +22,7 @@
 #include "json.hpp"
 #include <chrono>
 #include <thread>
+#include <cstdio>
 
 const std::regex hex_pattern("[a-f0-9]*");
 
@@ -222,16 +223,30 @@ struct for_archiving mining(std::string data, std::string target, std::string us
         std::vector<std::string> allDigests;
         int left_over = buffer.size() % 256000;
         int number_of_chunks = floor(buffer.size() / 256000);
-        if (buffer.size() > 256000)
-        {
-            for (int i = 0; i <= number_of_chunks; i++)
-            {
+        std::vector<std::vector<uint8_t>> digest_bytes;
+        if (buffer.size() > 256000) {
+            for (int i = 0; i <= number_of_chunks; i++) {
                 std::vector<uint8_t> tmpBuffer(&buffer[i], &buffer[i + 256000]);
                 // turn to vector uint to char array
                 std::copy(tmpBuffer.begin(), tmpBuffer.end(), shaInput);
                 sha256(shaInput, tmpBuffer.size(), digest);
+                writeToFile(bytesToHex(std::vector<uint8_t>(digest, digest + 32)), tmpBuffer, key_word_hash);
+                digest_bytes.push_back(std::vector<uint8_t>(digest, digest + 32));
+                writeToFile("tmp", std::vector<uint8_t>(digest, digest + 32), key_word_hash);
                 allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
             }
+            std::vector<uint8_t> spvBinary;
+            spvBinary = readBinary(key_word_hash + "/tmp");
+            unsigned char* spvBytes = spvBinary.data();
+            std::copy(spvBinary.begin(), spvBinary.end(), spvBytes);
+            sha256(spvBytes, spvBinary.size(), digest);
+            std::string digest_string = bytesToHex(std::vector<uint8_t>(digest, digest + 32));
+            std::string digest_tmp = key_word_hash + "/tmp";
+            std::string digest_path = key_word_hash + "/" + digest_string;
+            if(rename(digest_tmp.c_str(), digest_path.c_str()) != 0) {
+                std::cout << "Error renaming" << std::endl;
+            }
+
             if (number_of_chunks % 2 != 0)
             {
                 std::vector<uint8_t> tmpBuffer(&buffer[number_of_chunks * 2560000], &buffer[(number_of_chunks * 2560000) + left_over]);
@@ -248,6 +263,7 @@ struct for_archiving mining(std::string data, std::string target, std::string us
                 } else {
                     tmpString = allDigests[0] + allDigests[1];
                 }
+            
                 const unsigned char *tmp_sha_input = reinterpret_cast<const unsigned char *>(tmpString.c_str());
                 sha256(tmp_sha_input, tmpString.length(), digest);
                 allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
