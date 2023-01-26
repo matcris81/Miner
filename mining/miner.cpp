@@ -107,7 +107,38 @@ std::vector<uint8_t> readBinary(std::string file_path)
 {
     std::ifstream instream(file_path, std::ios::in | std::ios::binary);
     std::vector<uint8_t> data((std::istreambuf_iterator<char>(instream)), std::istreambuf_iterator<char>());
+    instream.close();
     return data;
+}
+
+std::vector<std::vector<uint8_t>> read256Binary(std::string file_path) {
+    std::cout << "During function" << std::endl;
+    std::ifstream file(file_path, std::ios::binary);
+    std::vector<std::vector<uint8_t>> buffer;
+    constexpr size_t chunk_size = 256000;
+    std::ifstream::pos_type current_pos;
+    std::vector<u_int8_t> chunk;
+    // uint8_t single_chunk[chunk_size];
+
+    while (true) {
+        // constexpr size_t chunk_size = 256000;
+        uint8_t single_chunk[chunk_size];
+        uint8_t* chunk_pointer = single_chunk;
+        current_pos = file.tellg();
+        file.read(reinterpret_cast<char*>(chunk_pointer), chunk_size);
+        for(auto i: single_chunk) {
+            chunk.push_back(i);
+        }
+        // std::copy(single_chunk[0], single_chunk[chunk_size], chunk);
+        buffer.push_back(chunk);
+
+        if (file.gcount() < chunk_size) {
+            break;
+        }
+    }
+
+    file.close();
+    return buffer;
 }
 
 void writeToFile(std::string hash, std::vector<uint8_t> bytes, std::string location)
@@ -126,6 +157,26 @@ void insertSPVList(std::string digest, std::string filename, std::string keyword
     std::string digesthashbytes(digest_vec.begin(), digest_vec.end());
     outfile << digesthashbytes << std::endl;
     outfile.close();
+}
+
+void spv_of_bytes(std::string key_word_hash) {
+    // read in bytes from tmp file
+    unsigned char digest[32];
+    std::vector<uint8_t> spvBinary;
+    spvBinary = readBinary(key_word_hash + "/tmp");
+
+    // hash all the bytes together into one
+    unsigned char* spvBytes = spvBinary.data();
+    std::copy(spvBinary.begin(), spvBinary.end(), spvBytes);
+    sha256(spvBytes, spvBinary.size(), digest);
+    std::string digest_string = bytesToHex(std::vector<uint8_t>(digest, digest + 32));
+
+    // rename the file with all the bytes
+    std::string digest_tmp = key_word_hash + "/tmp";
+    std::string digest_path = key_word_hash + "/" + digest_string;
+    if(rename(digest_tmp.c_str(), digest_path.c_str()) != 0) {
+        std::cout << "Error renaming" << std::endl;
+    }
 }
 
 std::vector<std::string> miner(std::string target, std::string hash)
@@ -219,10 +270,17 @@ struct for_archiving mining(std::string data, std::string target, std::string us
         size_t endOfTarget = data.length();
         target = extension.substr(1, endOfTarget);
         target = generateHash(target).substr(0, 4);
+        std::ifstream in_file(data, std::ios::binary);
+        in_file.seekg(0, std::ios::end);
+        int file_size = in_file.tellg();
+
+        int number_of_chunks = floor(file_size / 256000);
+        int left_over = file_size % 256000;
+        std::vector<std::vector<uint8_t>> data_chunks;
+        data_chunks = read256Binary(data);
+
         buffer = readBinary(data);
         std::vector<std::string> allDigests;
-        int left_over = buffer.size() % 256000;
-        int number_of_chunks = floor(buffer.size() / 256000);
         std::vector<std::vector<uint8_t>> digest_bytes;
         if (buffer.size() > 256000) {
             for (int i = 0; i <= number_of_chunks; i++) {
@@ -235,41 +293,31 @@ struct for_archiving mining(std::string data, std::string target, std::string us
                 writeToFile("tmp", std::vector<uint8_t>(digest, digest + 32), key_word_hash);
                 allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
             }
-            std::vector<uint8_t> spvBinary;
-            spvBinary = readBinary(key_word_hash + "/tmp");
-            unsigned char* spvBytes = spvBinary.data();
-            std::copy(spvBinary.begin(), spvBinary.end(), spvBytes);
-            sha256(spvBytes, spvBinary.size(), digest);
-            std::string digest_string = bytesToHex(std::vector<uint8_t>(digest, digest + 32));
-            std::string digest_tmp = key_word_hash + "/tmp";
-            std::string digest_path = key_word_hash + "/" + digest_string;
-            if(rename(digest_tmp.c_str(), digest_path.c_str()) != 0) {
-                std::cout << "Error renaming" << std::endl;
-            }
+            spv_of_bytes(key_word_hash);
 
-            if (number_of_chunks % 2 != 0)
-            {
-                std::vector<uint8_t> tmpBuffer(&buffer[number_of_chunks * 2560000], &buffer[(number_of_chunks * 2560000) + left_over]);
-                std::copy(tmpBuffer.begin(), tmpBuffer.end(), shaInput);
-                sha256(shaInput, tmpBuffer.size(), digest);
-                allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
-            }
-            int amount_of_hashes = allDigests.size();
-            while (allDigests.size() != 1) {
-                std::string tmpString;
-                if (amount_of_hashes == 0 && allDigests.size() != 2) {
-                    tmpString = allDigests[0] + allDigests[0];
-                    amount_of_hashes = allDigests.size();
-                } else {
-                    tmpString = allDigests[0] + allDigests[1];
-                }
-            
-                const unsigned char *tmp_sha_input = reinterpret_cast<const unsigned char *>(tmpString.c_str());
-                sha256(tmp_sha_input, tmpString.length(), digest);
-                allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
-                allDigests.erase(allDigests.begin(), allDigests.begin() + 2);
-                amount_of_hashes--;
-            }
+            // if (number_of_chunks % 2 != 0)
+            // {
+            //     std::vector<uint8_t> tmpBuffer(&buffer[number_of_chunks * 2560000], &buffer[(number_of_chunks * 2560000) + left_over]);
+            //     std::copy(tmpBuffer.begin(), tmpBuffer.end(), shaInput);
+            //     sha256(shaInput, tmpBuffer.size(), digest);
+            //     allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
+            // }
+            // int amount_of_hashes = allDigests.size();
+            // while (allDigests.size() != 1) {
+            //     std::string tmpString;
+            //     if (amount_of_hashes == 0 && allDigests.size() != 2) {
+            //         tmpString = allDigests[0] + allDigests[0];
+            //         amount_of_hashes = allDigests.size();
+            //     } else {
+            //         tmpString = allDigests[0] + allDigests[1];
+            //     }
+
+            //     const unsigned char *tmp_sha_input = reinterpret_cast<const unsigned char *>(tmpString.c_str());
+            //     sha256(tmp_sha_input, tmpString.length(), digest);
+            //     allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
+            //     allDigests.erase(allDigests.begin(), allDigests.begin() + 2);
+            //     amount_of_hashes--;
+            // }
         } else {
             std::copy(buffer.begin(), buffer.end(), shaInput);
             sha256(shaInput, buffer.size(), digest);

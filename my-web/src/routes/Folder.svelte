@@ -23,13 +23,13 @@
 				{/if}
 			</li>
 		{/each}
-	</ul>
+	</ul> 
 {/if}
 
 <style>
 	button {
 		padding: 0 0 0 1.5em;
-		background: url(/tutorial/icons/folder.svg) 0 0.1em no-repeat;
+		background: url(/my-web/src/routes/icons/not-expanded.png) 0 0.1em no-repeat;
 		background-size: 1em 1em;
 		font-weight: bold;
 		cursor: pointer;
@@ -38,7 +38,7 @@
 	}
 
 	.expanded {
-		background-image: url(/tutorial/icons/folder-open.svg);
+		background-image: url(/my-web/src/routes/icons/expanded.png);
 	}
 
 	ul {
