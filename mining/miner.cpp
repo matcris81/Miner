@@ -117,50 +117,20 @@ std::vector<std::vector<uint8_t>> read256Binary(std::string file_path, int numbe
     std::ifstream::pos_type current_pos;
     std::vector<u_int8_t> chunk;
     size_t chunk_size;
+    std::vector<std::vector<uint8_t>> data;
     // uint8_t single_chunk[chunk_size];
     int i = 0;
     file.seekg(0, std::ios::beg);
-    while (true) {
-        // constexpr size_t chunk_size = 256000;
-        if(i == number_of_chunks - 1) {
-            chunk_size = left_over;
-            std::cout << "leftover: "<<left_over<< std::endl;
-        } else {
-            chunk_size = 256000;
-        }
-        uint8_t single_chunk[chunk_size];
-        uint8_t* chunk_pointer = 0;
-        chunk_pointer = single_chunk;
-        current_pos = file.tellg();
-        file.read(reinterpret_cast<char*>(chunk_pointer), chunk_size);
-        for(auto i: single_chunk) {
-            chunk.push_back(i);
-        }
-        // std::copy(single_chunk[0], single_chunk[chunk_size], chunk);
-        buffer.push_back(chunk);
-
-        if (file.gcount() < chunk_size) {
-            break;
-        }
-        std::cout <<"Buffer.size(): " <<buffer[i].size() <<std::endl;
-        i++;
-        // std::cout << i << std::endl;
-        // std::vector<uint8_t> single_chunk(chunk_size);
-        // uint8_t* chunk_pointer = single_chunk.data();
-        // current_pos = file.tellg();
-        // file.read(reinterpret_cast<char*>(chunk_pointer), chunk_size);
-        // if(file.eof()){
-        //     break;
-        // }
-        // buffer.push_back(single_chunk);
-        // if (file.gcount() < chunk_size) {
-        //     break;
-        // }
-        // i++;
+    // while (true) {
+    while (!file.eof()) {
+        std::vector<uint8_t> buffer(256000);
+        std::streamsize bytesRead = file.read((char *)buffer.data(), buffer.size()).gcount();
+        if(bytesRead < buffer.size()) buffer.resize(bytesRead);
+        data.push_back(buffer);
     }
 
     file.close();
-    return buffer;
+    return data;
 }
 
 void writeToFile(std::string hash, std::vector<uint8_t> bytes, std::string location)
@@ -170,7 +140,7 @@ void writeToFile(std::string hash, std::vector<uint8_t> bytes, std::string locat
     fout.close();
 }
 
-// create index directory and write to file
+//   create index directory and write to file
 void insertSPVList(std::string digest, std::string filename, std::string keyword)
 {
     std::string filePath = keyword + "/" + filename;
@@ -181,7 +151,7 @@ void insertSPVList(std::string digest, std::string filename, std::string keyword
     outfile.close();
 }
 
-void spv_of_bytes(std::string key_word_hash) {
+std::string rename_spvlist(std::string key_word_hash) {
     // read in bytes from tmp file
     unsigned char digest[32];
     std::vector<uint8_t> spvBinary;
@@ -196,9 +166,11 @@ void spv_of_bytes(std::string key_word_hash) {
     // rename the file with all the bytes
     std::string digest_tmp = key_word_hash + "/tmp";
     std::string digest_path = key_word_hash + "/" + digest_string;
+    std::cout << digest_string << std::endl;
     if(rename(digest_tmp.c_str(), digest_path.c_str()) != 0) {
         std::cout << "Error renaming" << std::endl;
     }
+    return digest_string;
 }
 
 std::vector<std::string> miner(std::string target, std::string hash)
@@ -300,27 +272,39 @@ struct for_archiving mining(std::string data, std::string target, std::string us
         int left_over = file_size % 256000;
         std::vector<std::vector<uint8_t>> data_chunks;
         data_chunks = read256Binary(data, number_of_chunks, left_over);
-        // buffer = readBinary(data);
-        std::vector<std::string> allDigests;
-        // std::vector<std::vector<uint8_t>> digest_bytes;
+        std::vector<std::string> spv_hash_chunks;
+        std::string hashes;
+        int i = 0;
         if (data_chunks.size() > 1) {
-            for (int i = 0; i <= number_of_chunks ; i++) {
-                // std::vector<uint8_t> tmpBuffer(&buffer[i], &buffer[i + 256000]);
-                // turn to vector uint to char array
-                // std::cout << data_chunks[i].size() <<std::endl;
-                std::copy(data_chunks[i].begin(), data_chunks[i].end(), shaInput);
-                // std::cout << i << std::endl;
-                sha256(shaInput, data_chunks[i].size(), digest);
+            while(true) {
+                if(number_of_chunks >= 8000) {
+                    for(int i = 0; i < 8000; i++){
+                        std::copy(data_chunks[i].begin(), data_chunks[i].end(), shaInput);
+                        sha256(shaInput, data_chunks[i].size(), digest);
 
-                // std::cout << bytesToHex(std::vector<uint8_t>(digest, digest + 32)) << std::endl;
-                writeToFile(bytesToHex(std::vector<uint8_t>(digest, digest + 32)), data_chunks[i], key_word_hash);
+                        writeToFile(bytesToHex(std::vector<uint8_t>(digest, digest + 32)), data_chunks[i], key_word_hash);
+                        writeToFile("tmp", std::vector<uint8_t>(digest, digest + 32), key_word_hash);
+                        data_chunks.erase(data_chunks.begin());
+                    }
+                } else if (number_of_chunks <= 0) {
+                    break;
+                } else {
+                    for(int j = 0; j < number_of_chunks; j++) {
+                        std::copy(data_chunks[i].begin(), data_chunks[i].end(), shaInput);
+                        sha256(shaInput, data_chunks[i].size(), digest);
 
-                // data_chunks.push_back(std::vector<uint8_t>(digest, digest + 32));
-
-                writeToFile("tmp", std::vector<uint8_t>(digest, digest + 32), key_word_hash);
-                allDigests.push_back(bytesToHex(std::vector<uint8_t>(digest, digest + 32)));
+                        writeToFile(bytesToHex(std::vector<uint8_t>(digest, digest + 32)), data_chunks[i], key_word_hash);
+                        writeToFile("tmp", std::vector<uint8_t>(digest, digest + 32), key_word_hash);
+                        data_chunks.erase(data_chunks.begin());
+                    }
+                }
+                hashes = rename_spvlist(key_word_hash);
+                spv_hash_chunks.push_back(hashes);
+                number_of_chunks -= 8000;
+                i++;
             }
-            spv_of_bytes(key_word_hash);
+
+            // rename_spvlist(key_word_hash);
 
             // if (number_of_chunks % 2 != 0)
             // {
@@ -345,6 +329,7 @@ struct for_archiving mining(std::string data, std::string target, std::string us
             //     allDigests.erase(allDigests.begin(), allDigests.begin() + 2);
             //     amount_of_hashes--;
             // }
+
         } else {
             std::copy(data_chunks[0].begin(), data_chunks[0].end(), shaInput);
             sha256(shaInput, data_chunks.size(), digest);
