@@ -66,19 +66,23 @@
                 input_4: archiver_ready,
             };
         }
-        let json;
+        let json
         try {
             reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
             
+            let key_and_greatest;
+            key_and_greatest = reply.data.split('/');
             let get_data = "";
-            while(get_data == "") {
-                get_data = await axios.get('http://localhost:5557' + "/send_data", {
-                    params: {
-                        key_word_hash: reply.data
-                    }
-                })
-                json = JSON.stringify(get_data.data)
-            }
+            // await new Promise(r => setTimeout(r, 30000));
+            get_data = await axios.get('http://localhost:5557' + "/send_data", {
+                params: {
+                    key_word_hash: key_and_greatest[0],
+                    greatest: key_and_greatest[1]
+                }
+            })
+
+            json = JSON.stringify(get_data.data)
+
             } catch (e) {
                 console.log(e);
             }
@@ -95,7 +99,7 @@
                 json_pairs[1] = json_pairs[1].replace("[", '')
                 json_map.set(json_pairs[0], json_pairs[1])
             }
-            
+            console.log([...json_map.entries()]);
             change_root(json_map)
     }
 

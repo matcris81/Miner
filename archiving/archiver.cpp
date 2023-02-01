@@ -125,8 +125,7 @@ std::string returnGreatestFileName(std::string file_path, std::string prefixStri
     return greatestFileName;
 }
 
-std::string getFileInfo(std::string filePath, int prefixLen, int x)
-{
+std::string getFileInfo(std::string filePath, int prefixLen, int x) {
     std::ifstream indata(filePath);
     std::string finalText = "";
 
@@ -164,7 +163,7 @@ int prefixLengthIdentifier(std::string fileName, std::string insideFile) {
     return prefixLength;
 }
 
-void archiver(std::string file_path, std::string prefixString)
+std::string archiver(std::string file_path, std::string prefixString)
 {
     char tmp[256];
     getcwd(tmp, 256);
@@ -173,7 +172,9 @@ void archiver(std::string file_path, std::string prefixString)
     const char* extracter = file_path_string.c_str();
     extract(extracter);
     int prefix = 0;
-    std::string greatest_file_path = file_path + "/" + returnGreatestFileName(file_path, prefixString, prefix);
+    std::string greatest_filename;
+    greatest_filename = returnGreatestFileName(file_path, prefixString, prefix);
+    std::string greatest_file_path = file_path + "/" + greatest_filename;
     std::string newFileContents = getFileInfo(greatest_file_path, prefix, 1);
     std::vector<std::string> archiveFiles;
 
@@ -209,6 +210,8 @@ void archiver(std::string file_path, std::string prefixString)
         std::string finalOutput = getFileInfo(finalFilePath, 0, 2);
         // std::cout << finalOutput << " -> "<<it->first << std::endl;
     }
+
+    return greatest_filename;
     
     // std::filesystem::remove_all(file_path);
     // exit(0);
