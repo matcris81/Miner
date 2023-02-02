@@ -66,7 +66,7 @@
                 input_4: archiver_ready,
             };
         }
-        let json
+        let json = []
         try {
             reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
             
@@ -81,7 +81,8 @@
                 }
             })
 
-            json = JSON.stringify(get_data.data)
+            json.push(JSON.stringify(get_data.data))
+            console.log(json.length)
 
             } catch (e) {
                 console.log(e);

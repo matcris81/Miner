@@ -280,6 +280,7 @@ struct for_archiving mining(std::string data, std::string target, std::string us
         in_file.seekg(0, std::ios::end);
         long int file_size = in_file.tellg();
         long int number_of_chunks = floor(file_size / 256000);
+        std::cout << number_of_chunks << std::endl;
         int left_over = file_size % 256000;
 
         std::vector<std::vector<uint8_t>> data_chunks;
@@ -328,6 +329,7 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     spvlistHash = generateHash(hashes);
     std::string hash = key_word_hash + user_hash + spvlistHash;
     std::vector<std::string> digestString = miner(target, hash);
+    std::cout << "after while loop" << std::endl;
 
     // longkeyWordspvlist += digestString[0];
     writeToFile(digestString[0], hexToBytes(digestString[1]), key_word_hash);
@@ -372,7 +374,7 @@ struct for_archiving mining(std::string data, std::string target, std::string us
     return ready;
 }
 
-std::string findFile(const std::string &dir, const std::string &file) {
+std::string findFile(const std::string &dir, const std::string &file) {  
     for (const auto &entry : std::filesystem::directory_iterator(dir)) {
         if (entry.path().filename() == file) {
             std::string file_contents;
@@ -432,6 +434,8 @@ int main()
             archive_ready = req.get_param_value("input_4");
             writing_file = mining(data, "", user, key_word , writing_file.key_word_hash, 1);
             if(archive_ready == "true"){
+                std::cout << "keyword: " <<writing_file.key_word_const << std::endl;
+                std::cout << "datas: " << writing_file.datas[0] << std::endl;
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 std::filesystem::remove_all(writing_file.key_word_hash);
                 greatest_file = archiver(writing_file.key_word_hash, writing_file.target);
@@ -449,7 +453,6 @@ int main()
     server.Get("/send_data", [&](const httplib::Request &req, httplib::Response &res){
         // std::this_thread::sleep_for(std::chrono::milliseconds(20000));
         nlohmann::json data_send;
-
         res.set_header("Access-Control-Allow-Origin", "*");
         std::string key_word_hash = req.get_param_value("key_word_hash");
         std::string greatest_file = req.get_param_value("greatest");
@@ -479,8 +482,10 @@ int main()
         // get spv files data
         std::string spv_first_list;
         spv_first_list = findFile(key_word_hash, spv_files_split[0]);
+        std::cout << spv_first_list.length() << std::endl;
         std::string spv_second_list;
         spv_second_list = findFile(key_word_hash, spv_files_split[1]);
+        std::cout << spv_second_list.length() << std::endl;
 
         // split data into hashes (file names)
         std::vector<std::string> data_chunks;
@@ -490,28 +495,35 @@ int main()
         for(int i = 0; i < spv_second_list.length(); i += 64) {
             data_chunks.push_back(spv_second_list.substr(i, 64));
         }
+        std::cout << "sending it back now" << std::endl;
+        // add to json object
         std::string file_bytes_hex;
-        for(int i = 0; i < data_chunks.size() - 1; i++) {
+        for(int i = 0; i < data_chunks.size(); i++) {
             std::vector<uint8_t> data_bytes;
             data_bytes = fileBytes(key_word_hash, data_chunks[i]);
-            data_send.push_back({data_chunks[i], data_bytes});
-        }   
-        std::cout << "x" << std::endl;
-        std::string json_str = data_send.dump();
-        std::cout << json_str.size() << std::endl;
-        res.set_content(json_str, "text/plain"); 
-        res.status = 200;
-        std::filesystem::remove_all(writing_file.key_word_hash);
+            size_t bytes_size = data_bytes.size();
+            // data_send.push_back({data_chunks[i], data_bytes});
+            writeToFile("tmp", data_bytes, key_word_hash);
+            res.set_content(reinterpret_cast<const char*>(data_bytes.data()), bytes_size, "application/octet-stream");
+        }
+
+        // dump json into string and set as content
+        // std::cout << "Before dump" << std::endl;
+        // std::string json_str = data_send.dump();
+        // std::cout << "Json: " << json_str.size() << std::endl;
+        // res.set_content(json_str, "text/plain"); 
+        // res.status = 200;
+        // std::filesystem::remove_all(writing_file.key_word_hash);
 
     });
 
-    server.Options("/(.*)", [&](const httplib::Request & /*req*/, httplib::Response &res)
-                   {
+    server.Options("/(.*)", [&](const httplib::Request & /*req*/, httplib::Response &res) {
         res.set_header("Access-Control-Allow-Methods", " POST, GET, OPTIONS");
         res.set_header("Content-Type", "text/html; charset=utf-8");
         res.set_header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Accept");
         res.set_header("Access-Control-Allow-Origin", "*");
-        res.set_header("Connection", "close"); });
+        res.set_header("Connection", "close"); 
+    });
 
     server.listen("0.0.0.0", 5557);
 
