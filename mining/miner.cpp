@@ -488,20 +488,44 @@ int main()
             data_chunks.push_back(spv_first_list.substr(i, 64));
         }
         for(int i = 0; i < spv_second_list.length(); i += 64) {
-            data_chunks.push_back(spv_second_list.substr(i, 64));
+            data_chunks.push_back(spv_second_list.substr(i, 64)); 
         }
         std::string file_bytes_hex;
         for(int i = 0; i < data_chunks.size() - 1; i++) {
             std::vector<uint8_t> data_bytes;
             data_bytes = fileBytes(key_word_hash, data_chunks[i]);
-            data_send.push_back({data_chunks[i], data_bytes});
-        }   
-        std::cout << "x" << std::endl;
+            int result = remove(data_chunks[i].c_str());
+            std::cout << "remove success or not: " << result << std::endl;
+            // std::string number;
+            // number += std::to_string(i + 1);
+            // data_send.push_back({number, data_bytes});
+            writeToFile("file", data_bytes, key_word_hash);
+            // std::cout << "Data chunks: " <<number << "    Data bytes size: "<< data_bytes.size() << std::endl;
+        }
+
+        for (const auto &entry : std::filesystem::directory_iterator(key_word_hash)) {
+            if (entry.path().filename() != "file") {
+                std::vector<uint8_t> file_bytes;
+                std::string file_contents;
+                std::string file_name;
+                file_name = entry.path().filename();
+                file_bytes = readBinary(key_word_hash+ "/" + file_name);
+                data_send.push_back({file_name, file_bytes});
+                std::cout << file_name << std::endl;
+            }
+        }
+
+        std::string file_display;
+        file_display = "file";
+        std::vector<uint8_t> bytes;
+        bytes = fileBytes(key_word_hash, file_display);
+        data_send.push_back({file_display, bytes});
+
         std::string json_str = data_send.dump();
         std::cout << json_str.size() << std::endl;
         res.set_content(json_str, "text/plain"); 
         res.status = 200;
-        std::filesystem::remove_all(writing_file.key_word_hash);
+        // std::filesystem::remove_all(writing_file.key_word_hash);
 
     });
 

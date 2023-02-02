@@ -149,13 +149,15 @@
         let int_array
         let i = 0
         let file_contents
-        console.log("Keys: " + map.size)
+        let image_done = false;
         for (let [key, value] of map.entries()) {
             let seperate_bytes = value.split(",")
             int_array = seperate_bytes.map(x => parseInt(x));
             let bytes = new Buffer(int_array)
             file_contents = bytes.toString('hex')
+            // console.log("Keys: " + key)
             if(file_contents.length == 212) {
+                console.log("prefix: "+prefix)
                 prefix = key.substring(0,4)
                 //checking for jpg, png, jpeg
                 if(prefix == 'f814' || prefix == '8f8c' || prefix == '41e5') {
@@ -163,18 +165,25 @@
                 }
             }
             let base64String;
-            for (let [key, value] of map.entries()) {
-                if(key === data_hash){
-                    let seperate_bytes = value.split(",")
-                    int_array = seperate_bytes.map(x => parseInt(x))
-                    let bytes = new Buffer(int_array)
-                    base64String = bytes.toString('base64')
-                    if(prefix == 'f814') {
-                        document.getElementById("image").src = "data:image/jpg;base64," + base64String
-                    } else if (prefix == '8f8c') {
-                        document.getElementById("image").src = "data:image/png;base64," + base64String
-                    } else if(prefix == '41e5') {
-                        document.getElementById("image").src = "data:image/jpeg;base64," + base64String
+            if(data_hash !== "" && image_done === false){
+                for (let [key, value] of map.entries()) {
+                    if(key === "file"){
+                        let seperate_bytes = value.split(",")
+                        int_array = seperate_bytes.map(x => parseInt(x))
+                        let bytes = new Buffer(int_array)
+                        base64String = bytes.toString('base64')
+                        console.log(base64String.length)
+                        if(prefix == 'f814') {
+                            image_done = true
+                            document.getElementById("image").src = "data:image/jpg;base64," + base64String
+                        } else if (prefix == '8f8c') {
+                            document.getElementById("image").src = "data:image/png;base64," + base64String
+                            image_done = true
+                        } else if(prefix == '41e5') {
+                            // console.log("entered")
+                            document.getElementById("image").src = "data:image/jpeg;base64," + base64String
+                            image_done = true
+                        }
                     }
                 }
             }
