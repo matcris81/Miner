@@ -66,10 +66,10 @@
                 input_4: archiver_ready,
             };
         }
-        let json = []
+        let json
         try {
             reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
-            
+
             let key_and_greatest;
             key_and_greatest = reply.data.split('/');
             let get_data = "";
@@ -81,8 +81,7 @@
                 }
             })
 
-            json.push(JSON.stringify(get_data.data))
-            console.log(json.length)
+            json =  JSON.stringify(get_data.data)
 
             } catch (e) {
                 console.log(e);
@@ -150,7 +149,7 @@
         let int_array
         let i = 0
         let file_contents
-        console.log("Keys: " + map.size)
+        console.log("Keys size: " + map.size)
         for (let [key, value] of map.entries()) {
             let seperate_bytes = value.split(",")
             int_array = seperate_bytes.map(x => parseInt(x));
@@ -165,7 +164,10 @@
             }
             let base64String;
             for (let [key, value] of map.entries()) {
-                if(key === data_hash){
+                console.log("Key: " + key)
+                if(key === "file"){
+                    console.log("entered")
+
                     let seperate_bytes = value.split(",")
                     int_array = seperate_bytes.map(x => parseInt(x))
                     let bytes = new Buffer(int_array)
@@ -175,6 +177,7 @@
                     } else if (prefix == '8f8c') {
                         document.getElementById("image").src = "data:image/png;base64," + base64String
                     } else if(prefix == '41e5') {
+                        console.log("entered")
                         document.getElementById("image").src = "data:image/jpeg;base64," + base64String
                     }
                 }

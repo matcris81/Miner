@@ -504,16 +504,33 @@ int main()
             size_t bytes_size = data_bytes.size();
             // data_send.push_back({data_chunks[i], data_bytes});
             writeToFile("tmp", data_bytes, key_word_hash);
-            res.set_content(reinterpret_cast<const char*>(data_bytes.data()), bytes_size, "application/octet-stream");
+            // res.set_content(reinterpret_cast<const char*>(data_bytes.data()), bytes_size, "application/octet-stream");
         }
 
+        for (const auto &entry : std::filesystem::directory_iterator(key_word_hash)) {
+            std::vector<uint8_t> file_bytes;
+            if(entry.path().filename() != "file") {
+                std::string file_name;
+                file_name = entry.path().filename();
+                file_bytes = readBinary(key_word_hash + "/" + file_name);
+                data_send.push_back({file_name, file_bytes});
+            }
+        }
+
+        std::string new_named;
+        new_named = rename_spvlist(key_word_hash);
+        std::vector<uint8_t> bytes;
+        std::cout << key_word_hash + "/" +new_named << std::endl;
+        bytes = readBinary(key_word_hash + "/" +new_named);
+        std::cout <<"Bytes size: " <<bytes.size() << std::endl;
+        data_send.push_back({"file", bytes});
+        
         // dump json into string and set as content
-        // std::cout << "Before dump" << std::endl;
-        // std::string json_str = data_send.dump();
-        // std::cout << "Json: " << json_str.size() << std::endl;
-        // res.set_content(json_str, "text/plain"); 
-        // res.status = 200;
-        // std::filesystem::remove_all(writing_file.key_word_hash);
+        std::cout << "Before dump" << std::endl;
+        std::string json_str = data_send.dump();
+        std::cout << "Json: " << json_str.size() << std::endl;
+        res.set_content(json_str, "text/plain"); 
+        std::filesystem::remove_all(writing_file.key_word_hash);
 
     });
 
@@ -526,6 +543,7 @@ int main()
     });
 
     server.listen("0.0.0.0", 5557);
+
 
     return 0;
 }
