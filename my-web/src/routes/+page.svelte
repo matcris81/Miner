@@ -41,14 +41,12 @@
     const postMine = async function mine (asdf) {
         let params = {}
         if (asdf === "asdf") {
-            archiver_ready = "true"
+            archiver_ready = "true" 
         } else if(asdf === undefined){
             console.log("asdf: " + asdf)
         }else {
             archiver_ready = "false"
         }
-
-        console.log("Archiver: " + archiver_ready)
 
         if(textVisible == true) {
             params = {
@@ -69,19 +67,30 @@
         let json
         try {
             reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
-            
+
             let key_and_greatest;
             key_and_greatest = reply.data.split('/');
             let get_data = "";
             // await new Promise(r => setTimeout(r, 30000));
-            get_data = await axios.get('http://localhost:5557' + "/send_data", {
+            get_data = await axios.get('http://localhost:5557' + "/spv_list", {
                 params: {
                     key_word_hash: key_and_greatest[0],
                     greatest: key_and_greatest[1]
                 }
             })
 
-            json = JSON.stringify(get_data.data)
+            json =  JSON.stringify(get_data.data)
+            console.log("Json: " + json)
+
+            json = json.replace(/"/g, '')
+            let spv_list_split = [];
+            let j = 0;
+            for(let i = 0; i < json.length; i+=64) {
+                spv_list_split.push(json.substr(i ,64));
+                console.log(spv_list_split[j]);
+                j++;
+            }
+
 
             } catch (e) {
                 console.log(e);
@@ -149,7 +158,7 @@
         let int_array
         let i = 0
         let file_contents
-        let image_done = false;
+        console.log("Keys size: " + map.size)
         for (let [key, value] of map.entries()) {
             let seperate_bytes = value.split(",")
             int_array = seperate_bytes.map(x => parseInt(x));
@@ -165,6 +174,7 @@
                 }
             }
             let base64String;
+<<<<<<< HEAD
             if(data_hash !== "" && image_done === false){
                 for (let [key, value] of map.entries()) {
                     if(key === "file"){
@@ -184,6 +194,24 @@
                             document.getElementById("image").src = "data:image/jpeg;base64," + base64String
                             image_done = true
                         }
+=======
+            for (let [key, value] of map.entries()) {
+                console.log("Key: " + key)
+                if(key === "file"){
+                    console.log("entered")
+
+                    let seperate_bytes = value.split(",")
+                    int_array = seperate_bytes.map(x => parseInt(x))
+                    let bytes = new Buffer(int_array)
+                    base64String = bytes.toString('base64')
+                    if(prefix == 'f814') {
+                        document.getElementById("image").src = "data:image/jpg;base64," + base64String
+                    } else if (prefix == '8f8c') {
+                        document.getElementById("image").src = "data:image/png;base64," + base64String
+                    } else if(prefix == '41e5') {
+                        console.log("entered")
+                        document.getElementById("image").src = "data:image/jpeg;base64," + base64String
+>>>>>>> a55c3f0b717d075ab7876eda08cb6a0b007c1504
                     }
                 }
             }
