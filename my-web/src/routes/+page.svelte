@@ -41,14 +41,12 @@
     const postMine = async function mine (asdf) {
         let params = {}
         if (asdf === "asdf") {
-            archiver_ready = "true"
+            archiver_ready = "true" 
         } else if(asdf === undefined){
             console.log("asdf: " + asdf)
         }else {
             archiver_ready = "false"
         }
-
-        console.log("Archiver: " + archiver_ready)
 
         if(textVisible == true) {
             params = {
@@ -74,7 +72,7 @@
             key_and_greatest = reply.data.split('/');
             let get_data = "";
             // await new Promise(r => setTimeout(r, 30000));
-            get_data = await axios.get('http://localhost:5557' + "/send_data", {
+            get_data = await axios.get('http://localhost:5557' + "/spv_list", {
                 params: {
                     key_word_hash: key_and_greatest[0],
                     greatest: key_and_greatest[1]
@@ -82,6 +80,17 @@
             })
 
             json =  JSON.stringify(get_data.data)
+            console.log("Json: " + json)
+
+            json = json.replace(/"/g, '')
+            let spv_list_split = [];
+            let j = 0;
+            for(let i = 0; i < json.length; i+=64) {
+                spv_list_split.push(json.substr(i ,64));
+                console.log(spv_list_split[j]);
+                j++;
+            }
+
 
             } catch (e) {
                 console.log(e);
