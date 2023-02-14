@@ -156,29 +156,6 @@ void insertSPVList(std::string digest, std::string filename, std::string keyword
     outfile.close();
 }
 
-std::string rename_spvlist(std::string key_word_hash) {
-    std::cout << "rename tmp" << std::endl;
-    // read in bytes from tmp file
-    unsigned char digest[32];
-    std::vector<uint8_t> spvBinary;
-    spvBinary = readBinary(key_word_hash + "/tmp");
-
-    // hash all the bytes together into one
-    unsigned char* spvBytes = spvBinary.data();
-    std::copy(spvBinary.begin(), spvBinary.end(), spvBytes);
-    sha256(spvBytes, spvBinary.size(), digest);
-    std::string digest_string = bytesToHex(std::vector<uint8_t>(digest, digest + 32));
-
-    // rename the file with all the bytes
-    std::string digest_tmp = key_word_hash + "/tmp";
-    std::string digest_path = key_word_hash + "/" + digest_string;
-    if(rename(digest_tmp.c_str(), digest_path.c_str()) != 0) {
-        std::cout << "Error renaming" << std::endl;
-    }
-
-    return digest_string;
-}
-
 std::vector<std::string> miner(std::string target, std::string hash)
 {
     std::string messageString;
@@ -249,9 +226,55 @@ std::vector<std::string> miner(std::string target, std::string hash)
     return {digeststring, messageString};
 }
 
+std::string rename_spvlist(std::string key_word_hash, std::string target) {
+    // read in bytes from tmp file
+    unsigned char digest[32];
+    std::vector<uint8_t> spvBinary;
+    spvBinary = readBinary(key_word_hash + "/tmp");
+
+    // hash all the bytes together into one
+    unsigned char* spvBytes = spvBinary.data();
+    std::copy(spvBinary.begin(), spvBinary.end(), spvBytes);
+    sha256(spvBytes, spvBinary.size(), digest);
+    std::string digest_string = bytesToHex(std::vector<uint8_t>(digest, digest + 32));
+    std::string digest_tmp = key_word_hash + "/tmp";
+    std::string digest_path = key_word_hash + "/" + digest_string;
+
+    // rename the file with all the bytes
+    if(rename(digest_tmp.c_str(), digest_path.c_str()) != 0) {
+        std::cout << "Error renaming" << std::endl;
+    }
+
+    return digest_string;
+}
+
+std::string make_chunk(std::string target, std::string key_word_hash, std::string chunks_hashed) {
+    std::string chunk_hash = "6c87f68371b28954707ebb92afee7ccffb74c6f71ec8fea8a98cf6104289585b";
+
+    // mine prefix onto "chunk" hashed
+    std::vector<std::string> target_chunk_mined;
+    target_chunk_mined = miner(target, chunk_hash);
+
+    // write all chunks hashed to file that is target and hash mined
+    writeToFile(target_chunk_mined[0], hexToBytes(chunks_hashed), key_word_hash);
+    
+    return target_chunk_mined[0];
+}
+
+std::string make_root(std::string target, std::string key_word_hash, std::string all_chunks) {
+    std::string root_hash = "4813494d137e1631bba301d5acab6e7bb7aa74ce1185d456565ef51d737677b2";
+    //mine prefix onto "root" hashed
+    std::vector<std::string> target_root_mined;
+    target_root_mined = miner(target, root_hash);
+    // write all chunk file names to target_root_miner[0]
+    writeToFile(target_root_mined[0], hexToBytes(all_chunks), key_word_hash);
+    
+    return target_root_mined[0];
+}
+
 struct for_archiving mining(std::string data, std::string target, std::string user_hash, std::string key_word, std::string key_word_hash , int file_or_txt)
 {
-    std::string data_hash, spvlistHash, pref_ex, longkeyWordspvlist;
+    std::string data_hash, pref_ex, longkeyWordspvlist, all_chunks;
     std::string emptynonce = "0000000000000000";
     int weight = 0;
     char tmp[256];
@@ -268,6 +291,10 @@ struct for_archiving mining(std::string data, std::string target, std::string us
 
     unsigned char digest[32];
     unsigned char shaInput[256010];
+    std::string root_file_name;
+    std::string chunks_hashed;
+    std::string hash;
+    std::vector<std::string> digestString;
 
     if (file_or_txt == 1)
     {
@@ -280,58 +307,62 @@ struct for_archiving mining(std::string data, std::string target, std::string us
         in_file.seekg(0, std::ios::end);
         long int file_size = in_file.tellg();
         long int number_of_chunks = floor(file_size / 256000);
-        std::cout << number_of_chunks << std::endl;
         int left_over = file_size % 256000;
-
+        bool large_file = false;
         std::vector<std::vector<uint8_t>> data_chunks;
         data_chunks = read256Binary(path);
         std::vector<std::string> spv_hash_chunks;
         int i = 0;
-        if (data_chunks.size() > 1) {
-            while(true) {
-                if(number_of_chunks >= 8000) {
-                    for(int i = 0; i < 8000; i++){
-                        std::copy(data_chunks[0].begin(), data_chunks[0].end(), shaInput);
-                        sha256(shaInput, data_chunks[0].size(), digest);
+        while (data_chunks.size() > 1) {
+            bool root = false;
+            if(number_of_chunks >= 8000) {
+                for(int i = 0; i < 8000; i++){
+                    large_file = true;
+                    std::copy(data_chunks[0].begin(), data_chunks[0].end(), shaInput);
+                    sha256(shaInput, data_chunks[0].size(), digest);
 
-                        writeToFile(bytesToHex(std::vector<uint8_t>(digest, digest + 32)), data_chunks[0], key_word_hash);
-                        writeToFile("tmp", std::vector<uint8_t>(digest, digest + 32), key_word_hash);
-                        data_chunks.erase(data_chunks.begin());
-                    }
-                } else if (number_of_chunks <= 0) {
-                    break;
-                } else {
-                    for(int j = 0; j < number_of_chunks + 1; j++) {
-                        std::copy(data_chunks[0].begin(), data_chunks[0].end(), shaInput);
-                        sha256(shaInput, data_chunks[0].size(), digest);
-
-                        writeToFile(bytesToHex(std::vector<uint8_t>(digest, digest + 32)), data_chunks[0], key_word_hash);
-                        writeToFile("tmp", std::vector<uint8_t>(digest, digest + 32), key_word_hash);
-                        data_chunks.erase(data_chunks.begin());
-                    }
+                    writeToFile(bytesToHex(std::vector<uint8_t>(digest, digest + 32)), data_chunks[0], key_word_hash);
+                    writeToFile("tmp", std::vector<uint8_t>(digest, digest + 32), key_word_hash);
+                    data_chunks.erase(data_chunks.begin());
                 }
-                // add to string to make spv list
-                hashes += rename_spvlist(key_word_hash);
+                // rename the file and get the name
+                chunks_hashed = rename_spvlist(key_word_hash, target);
+                all_chunks += make_chunk(target, key_word_hash, chunks_hashed);
+            } else if (number_of_chunks <= 0) {
+                break;
+            } else {
+                for(int j = 0; j < number_of_chunks + 1; j++) {
+                    std::copy(data_chunks[0].begin(), data_chunks[0].end(), shaInput);
+                    sha256(shaInput, data_chunks[0].size(), digest);
 
-                // spv_hash_chunks.push_back(hashes);
-                number_of_chunks -= 8000;
-                i++;
+                    writeToFile(bytesToHex(std::vector<uint8_t>(digest, digest + 32)), data_chunks[0], key_word_hash);
+                    writeToFile("tmp", std::vector<uint8_t>(digest, digest + 32), key_word_hash);
+                    data_chunks.erase(data_chunks.begin());
+                }
+                chunks_hashed = rename_spvlist(key_word_hash, target);
+                if(large_file) {
+                    all_chunks += make_chunk(target, key_word_hash, chunks_hashed);
+                    root_file_name = make_root(target, key_word_hash, all_chunks);
+                } else {
+                    root_file_name = make_root(target, key_word_hash, chunks_hashed);
+                }
             }
-
-        } else {
-            std::copy(data_chunks[0].begin(), data_chunks[0].end(), shaInput);
-            sha256(shaInput, data_chunks.size(), digest);
+            // add to string to make spv list
+            number_of_chunks -= 8000;
+            i++;
         }
-        data_hash = bytesToHex(std::vector<uint8_t>(digest, digest + 32));
+        hash = key_word_hash + user_hash + root_file_name;
+        digestString = miner(target, hash);
     } else {
         data_hash = generateHash(data);
+        std::string hash = key_word_hash + user_hash + data_hash;
+        std::cout << "Target" << target << std::endl;
+        digestString = miner(target, hash);
     }
-    spvlistHash = generateHash(hashes);
-    std::string hash = key_word_hash + user_hash + spvlistHash;
-    std::vector<std::string> digestString = miner(target, hash);
-    std::cout << "after while loop" << std::endl;
+    std::string spvlistHash;
+    spvlistHash = generateHash(chunks_hashed);
 
-    // longkeyWordspvlist += digestString[0];
+
     writeToFile(digestString[0], hexToBytes(digestString[1]), key_word_hash);
     if (file_or_txt == 0) {
         writeTextToFile(data_hash, data, key_word_hash);
@@ -353,7 +384,6 @@ struct for_archiving mining(std::string data, std::string target, std::string us
 
     std::vector<std::string> digestMsg = miner(pref_ex, spvlistHash);
 
-    insertSPVList(hashes, spvlistHash, key_word_hash);
     writeToFile(digestMsg[0], hexToBytes(digestString[0]), key_word_hash);
 
     std::vector<std::string> datas;
@@ -423,19 +453,19 @@ int main()
             target = req.get_param_value("input_3");
             data = req.get_param_value("input_4");
             archive_ready = req.get_param_value("input_5");
+            std::cout << target << std::endl;
             writing_file = mining(data, target, user, key_word, writing_file.key_word_hash, 0);
             if(archive_ready == "true"){
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 std::filesystem::remove_all(writing_file.key_word_hash);
                 greatest_file = archiver(writing_file.key_word_hash, writing_file.target);
+                std::cout << "Done" << std::endl;
             }
        } else {
             data = req.get_param_value("input_3");
             archive_ready = req.get_param_value("input_4");
             writing_file = mining(data, "", user, key_word , writing_file.key_word_hash, 1);
             if(archive_ready == "true"){
-                std::cout << "keyword: " <<writing_file.key_word_const << std::endl;
-                std::cout << "datas: " << writing_file.datas[0] << std::endl;
                 write_archive(writing_file.key_word_const.c_str() , writing_file.datas);
                 std::filesystem::remove_all(writing_file.key_word_hash);
                 greatest_file = archiver(writing_file.key_word_hash, writing_file.target);
@@ -444,14 +474,13 @@ int main()
        }
 
        std::string content;
-       content = writing_file.key_word_hash + "/" + greatest_file;
+       content = writing_file.key_word_hash + "/" + greatest_file + " " + writing_file.target;
 
         res.set_content(content, "text/plain");
         res.status = 200;
     });
 
     server.Get("/spv_list", [&](const httplib::Request &req, httplib::Response &res){
-        // std::this_thread::sleep_for(std::chrono::milliseconds(20000));
         res.set_header("Access-Control-Allow-Origin", "*");
         std::string key_word_hash = req.get_param_value("key_word_hash");
         std::string greatest_file = req.get_param_value("greatest");
@@ -467,71 +496,89 @@ int main()
         std::string data_hash;
         data_hash = full_hash.substr(132, 64);
 
+        // get root file
+        std::string root;
+        root = findFile(key_word_hash, data_hash);
+
         // get spv files
         std::string spv_files;
-        spv_files = findFile(key_word_hash, data_hash);
+        spv_files = findFile(key_word_hash, root);
 
-        // split up spv files
-        std::vector<std::string> spv_files_split;
-        for(int i = 0; i < spv_files.length(); i+= 64) {
-            spv_files_split.push_back(spv_files.substr(i, 64));
-        }
-
-        // get spv files data
-        std::string spv_list;
-        for(int i = 0; i < spv_files_split.size(); i++) {
-            spv_list += findFile(key_word_hash, spv_files_split[i]);
-        }
-        spv_list = spv_list.substr(0, spv_list.length() - 9); 
-
-        // spv_first_list = findFile(key_word_hash, spv_files_split[0]);
-        // std::cout << spv_first_list.length() << std::endl;
-        // std::string spv_second_list;
-        // spv_second_list = findFile(key_word_hash, spv_files_split[1]);
-
-        // split data into hashes (file names)
-        // std::vector<std::string> data_chunks;
-        // for(int i = 0; i < spv_list.length(); i += 64) {
-        //     data_send.push_back({spv_list.substr(i, 64)});
-        // }
-
-        // add to json object
-        // std::string file_bytes_hex;
-        // for(int i = 0; i < data_chunks.size(); i++) {
-        //     std::vector<uint8_t> data_bytes;
-        //     data_bytes = fileBytes(key_word_hash, data_chunks[i]);
-        //     size_t bytes_size = data_bytes.size();
-        //     // data_send.push_back({data_chunks[i], data_bytes});
-        //     writeToFile("file", data_bytes, key_word_hash);
-        //     // res.set_content(reinterpret_cast<const char*>(data_bytes.data()), bytes_size, "application/octet-stream");
-        // }
-
-        // for (const auto &entry : std::filesystem::directory_iterator(key_word_hash)) {
-        //     std::vector<uint8_t> file_bytes;
-        //     if(entry.path().filename() != "file") {
-        //         std::string file_name;
-        //         file_name = entry.path().filename();
-        //         file_bytes = readBinary(key_word_hash + "/" + file_name);
-        //         data_send.push_back({file_name, file_bytes});
-        //     }
-        // }
-
-        // std::string new_named;
-        // new_named = rename_spvlist(key_word_hash);
-        // std::vector<uint8_t> bytes;
-        // std::cout << key_word_hash + "/" +new_named << std::endl;
-        // bytes = readBinary(key_word_hash + "/" +new_named);
-        // std::cout <<"Bytes size: " <<bytes.size() << std::endl;
-        // data_send.push_back({"file", bytes});
-        
-        // dump json into string and set as content
-        // std::cout << "Before dump" << std::endl;
-        // std::string json_str = data_send.dump();
-        // std::cout << "Json: " << json_str.size() << std::endl;
-        res.set_content(spv_list, "text/plain"); 
-        std::filesystem::remove_all(writing_file.key_word_hash);
+        std::filesystem::remove_all(key_word_hash);
+        res.set_content(spv_files, "text/plain"); 
 
     });
+
+    server.Get("/get_file_bytes", [&](const httplib::Request &req, httplib::Response &res){ 
+        res.set_header("Access-Control-Allow-Origin", "*");
+        nlohmann::json data_send;
+        // get directory and file name
+        std::string key_word_hash = req.get_param_value("key_word_hash");
+        std::string file = req.get_param_value("file");
+
+        std::vector<uint8_t> bytes;
+        bytes = fileBytes(key_word_hash, file);
+
+        // add to json and send back to front
+        data_send.push_back({bytes});
+        std::string file_path = key_word_hash + "/" + file;
+        int result = remove(file_path.c_str());
+
+        // load in all the bytes from file
+        std::string json_str = data_send.dump();
+        res.set_content(json_str, "text/plain");
+    });
+
+    server.Post("/extract_directory", [&](const httplib::Request &req, httplib::Response &res){ 
+        res.set_header("Access-Control-Allow-Origin", "*");
+        // get keyword 
+        std::string keyword = req.get_param_value("directory_name");
+        unsigned char shaInput[keyword.length()];
+        unsigned char directory_name[32];
+
+        // string to unsigned char
+        for (int i = 0; i < keyword.length(); i++) {
+            shaInput[i] = keyword[i];
+        }
+
+        // convert back to hex
+        sha256(shaInput, keyword.length(), directory_name);
+        std::vector<uint8_t> vector_directory(directory_name, directory_name + 32);
+
+        //get current path, find file, extract said file
+        std::filesystem::path current_path = std::filesystem::current_path();
+        for (const auto &entry : std::filesystem::directory_iterator(current_path)) {
+            std::string file_name = entry.path().filename();
+            if(file_name == bytesToHex(vector_directory) + ".tar") {
+                extract(file_name.c_str());
+                break;
+            }
+        }
+        
+        // send directory name to front end
+        res.set_content(bytesToHex(vector_directory), "text/plain");
+    });
+
+    server.Get("/directory_contents", [&](const httplib::Request &req, httplib::Response &res) {
+        res.set_header("Access-Control-Allow-Origin", "*");
+
+        //create json and get directory name
+        nlohmann::json directory_contents;
+        std::string directory_name = req.get_param_value("directory_name");
+
+        // get all the files, file_contents and add to json
+        for (const auto &entry : std::filesystem::directory_iterator(directory_name)) {
+            std::vector<uint8_t> file_contents = readBinary(entry.path());
+            directory_contents.push_back({entry.path().filename(), file_contents});
+        }
+
+        // dump json to string and send back
+        std::string data_string;
+        data_string = directory_contents.dump();
+        std::filesystem::remove_all(directory_name);
+        res.set_content(data_string, "text/plain");
+    });
+
 
     server.Options("/(.*)", [&](const httplib::Request & /*req*/, httplib::Response &res) {
         res.set_header("Access-Control-Allow-Methods", " POST, GET, OPTIONS");
