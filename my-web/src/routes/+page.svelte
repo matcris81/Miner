@@ -1,6 +1,7 @@
 <script setContext=module>
     import radial_data from './data.js'
     import { postMine } from './module.svelte';
+    import { prefix as prefixes } from './variableModule.svelte';
     
     let textVisible = false;
     let fileVissible = false;
@@ -72,8 +73,6 @@
         index++
     };
 
-    let radioValue = '';
-
     let username = ''
     let keyword = ''
 
@@ -91,6 +90,13 @@
         keyword = '';
         prefix = ''
         data = ''
+    }
+
+    function addPrefix() {
+        if(prefixes.length >= 5) {
+            
+        }
+        prefixes.push(prefix)
     }
 
 </script>

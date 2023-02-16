@@ -2,7 +2,7 @@
     import {Buffer} from 'buffer'
     import axios from "axios"
     import { spv_lists } from "./variableModule.svelte"
-    import { prefixMap } from './variableModule.svelte'
+    import { prefix as prefixes } from './variableModule.svelte'
 
     export let root = [
 		{
@@ -33,7 +33,7 @@
             params = {
                 input_1: username,
                 input_2: keyword,
-                input_3: prefix,
+                input_3: prefixes,
                 input_4: data,
                 input_5: archiver_ready,
             };
@@ -51,8 +51,8 @@
             reply = await axios.post('http://localhost:5557' + "/mine", null, {params})
             
             key_greatest_prefix = reply.data.split(/[/ ]/);
-            prefix.push(key_greatest_prefix[2])
-            console.log("prefix 1: "+prefix)
+            prefixes.push(key_greatest_prefix[2])
+            console.log("prefix 1: "+prefixes)
             let get_data = ""
             if(asdf == 'asdf') {
                 get_data = await axios.get('http://localhost:5557' + "/spv_list", {
@@ -61,13 +61,13 @@
                         greatest: key_greatest_prefix[1]
                     }
                 })
+                let spv_list
+                spv_list =  JSON.stringify(get_data.data)
+                spv_list = spv_list.replace(/"/g, '')
+                spv_lists.push(spv_list)
+                console.log(spv_lists)
             }
             
-            let spv_list
-            spv_list =  JSON.stringify(get_data.data)
-            spv_list = spv_list.replace(/"/g, '')
-            spv_lists.push(spv_list)
-            console.log(spv_lists)
             let j = 0
             
         } catch (e) {
@@ -106,8 +106,8 @@
                 all_bytes[i] = all_bytes[i].replaceAll('[', '')
                 bytes_array += all_bytes[i]
             }
-            console.log("prefix 2: " + prefix)
-            displayPicture(bytes_array, prefix[index])
+            console.log("prefix 2: " + prefixes)
+            displayPicture(bytes_array, prefixes[index])
             directory_contents = await axios.get('http://localhost:5557' + "/directory_contents", {
                 params: {
                     directory_name: reply.data
