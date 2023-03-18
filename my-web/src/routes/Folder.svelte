@@ -35,6 +35,7 @@
 		cursor: pointer;
 		border: none;
 		margin: 0;
+		color: white;
 	}
 
 	.expanded {

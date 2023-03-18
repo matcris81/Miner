@@ -137,8 +137,8 @@
     </div>
 </body>
 <style>
-
 .form {
+    margin-top: 200px;
     text-align: center;
 }
 
@@ -185,6 +185,6 @@ form {
 }
 
 :global(body) {
-    background-color: lightblue;
+    background-color: 292929;
 }
 </style>
