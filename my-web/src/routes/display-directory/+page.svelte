@@ -15,7 +15,7 @@
 	}
 
 	let picTrue = true
-
+	let y
 </script>
 
 <style>
@@ -34,7 +34,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 10vh;
+  height: 20vh;
 }
 
 a {
@@ -75,26 +75,12 @@ a {
   left: 100%;
 }
 
-
-/* div 
-.btn-1{
-	top:20px;
-	height: 100px;
-	width: 500px;
-}
-
-
-.archive{
-	height: 100px;
-	width: 500px;
-	border: 1px solid white;
-	padding: 30px;
-	margin: auto;
-	
-} */
-
 	
 </style>
+{#if y < 50}
+  <div class="navbar">
+  </div>
+{/if}
 <body>
 	<div style="display: flex; justify-content: center;align-items: center; height:30vh; position:relative; margin-top:20px">
 		<Selector options={options} bind:selected on:change={changeFolder}/>

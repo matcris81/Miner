@@ -263,6 +263,7 @@ std::string make_chunk(std::string target, std::string key_word_hash, std::strin
 
 std::string make_root(std::string target, std::string key_word_hash, std::string all_chunks) {
     std::string root_hash = "4813494d137e1631bba301d5acab6e7bb7aa74ce1185d456565ef51d737677b2";
+    
     //mine prefix onto "root" hashed
     std::vector<std::string> target_root_mined;
     target_root_mined = miner(target, root_hash);
@@ -274,6 +275,8 @@ std::string make_root(std::string target, std::string key_word_hash, std::string
 
 struct for_archiving mining(std::string data, std::string target, std::string user_hash, std::string key_word, std::string key_word_hash , int file_or_txt)
 {
+
+    std::cout << target << std::endl;
     std::string data_hash, pref_ex, longkeyWordspvlist, all_chunks;
     std::string emptynonce = "0000000000000000";
     int weight = 0;
@@ -451,6 +454,7 @@ int main()
         std::string archive_ready;
         if(req.has_param("input_5")) {
             target = req.get_param_value("input_3");
+            std::cout << "Target " << target << std::endl;
             data = req.get_param_value("input_4");
             archive_ready = req.get_param_value("input_5");
             std::cout << target << std::endl;
@@ -578,7 +582,6 @@ int main()
         std::filesystem::remove_all(directory_name);
         res.set_content(data_string, "text/plain");
     });
-
 
     server.Options("/(.*)", [&](const httplib::Request & /*req*/, httplib::Response &res) {
         res.set_header("Access-Control-Allow-Methods", " POST, GET, OPTIONS");

@@ -169,7 +169,7 @@
         console.log(files)
         root[0].name = directory_name
         for(let i = 0; i < files.length; i++) {
-            if(i != 0) {
+            if(i > 5) {
                 addFile()
             }
             root[0].files[i].name = files[i][0]

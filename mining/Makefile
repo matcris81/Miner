@@ -5,7 +5,7 @@ TARGET = miner
 
 all: $(TARGET)
 
-$(TARGET): $(TARGET).cpp
+miner: $(TARGET).cpp
 		$(CC) $(CFLAGS) $(TARGET).cpp -o $(TARGET)
 
 run: $(TARGET)
